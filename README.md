@@ -116,13 +116,94 @@ python init_database.py
 Una vez instaladas las dependencias y creada la base de datos, inicia la aplicación con:
 
 ```bash
-python main.py
+python3 main.py
 ```
 
-## ⚙️ Scripts de Mantenimiento
+---
 
-El proyecto incluye scripts adicionales en la raíz para tareas de desarrollo y mantenimiento:
+## <a name="️-scripts-de-mantenimiento"></a> ⚙️ Scripts de Mantenimiento
 
-- **update_ubicaciones.py**: Genera y asigna ubicaciones físicas descriptivas a todos los ejemplares de la base.
-- **migrate_to_new_system.py**: Migra una base antigua (por cantidad de libros) a la nueva estructura (por ejemplares individuales).
-- **test_debug.py**: Permite probar y depurar funciones específicas sin levantar la interfaz gráfica.
+El proyecto incluye scripts adicionales para tareas de desarrollo y mantenimiento:
+
+### Scripts Activos
+
+- **init_database.py**: Inicializa la base de datos y la puebla con datos de prueba (autores, géneros, estanterías, libros, ejemplares y usuarios).
+- **update_ubicaciones.py**: Genera y asigna ubicaciones físicas descriptivas a todos los ejemplares que no tienen una ubicación asignada.
+- **test_debug.py**: Script de pruebas para depurar funciones específicas sin levantar la interfaz gráfica.
+
+### Scripts Obsoletos
+
+Los siguientes scripts han sido movidos a la carpeta `scripts_obsoletos/` ya que no son necesarios en el sistema actual:
+
+- **migrate_to_new_system.py**: Script de migración de esquema antiguo al nuevo (ya no necesario, la base de datos ya está en el nuevo formato).
+
+---
+
+## 📁 Estructura del Proyecto
+
+```
+Biblioteca/
+├── assets/                    # Recursos visuales (imágenes, iconos)
+├── database/                  # Capa de acceso a datos
+│   ├── db_manager.py         # Gestor de base de datos SQLite
+│   └── biblioteca.db         # Base de datos (se genera al inicializar)
+├── logic/                     # Capa de lógica de negocio
+│   ├── library_manager.py    # GestorBiblioteca (Facade)
+│   └── models.py             # Modelos de datos (Libro, Autor, Usuario, etc.)
+├── gui/                       # Capa de presentación (interfaz gráfica)
+│   ├── app.py                # Aplicación principal
+│   ├── frames/               # Pantallas/vistas modulares
+│   └── utils/                # Utilidades (diálogos, helpers)
+├── scripts_obsoletos/         # Scripts antiguos (archivados)
+├── config.ini                # Configuración de la base de datos
+├── requirements.txt          # Dependencias del proyecto
+├── init_database.py          # Script de inicialización
+└── README.md                 # Este archivo
+```
+
+---
+
+## 📊 Requisitos Cumplidos
+
+BiblioHub cumple con todos los requisitos especificados para el proyecto:
+
+### ✅ Requisitos Básicos (Verde)
+- Crear, modificar y eliminar libros
+- Crear, modificar y eliminar estanterías
+- Prestar y devolver ejemplares de libros
+- Buscar libros por código, título y autor
+- Validaciones: estanterías únicas, códigos únicos, control de capacidad
+
+### ✅ Requisitos Intermedios (Naranja)
+- Mostrar libros disponibles y prestados
+- Mostrar libro más prestado
+- Validación de préstamos (no prestar sin ejemplares disponibles)
+- Interfaz gráfica completa con CustomTkinter
+
+### ✅ Requisitos Avanzados (Violeta)
+- Mover libros entre estanterías (con actualización de ubicaciones físicas)
+- Base de datos SQLite con modelo normalizado
+
+---
+
+## 🎨 Capturas de Pantalla
+
+BiblioHub cuenta con una interfaz moderna y amigable:
+
+- **Dashboard principal** con estadísticas en tiempo real
+- **Búsqueda inteligente** con resultados instantáneos
+- **Gestión de préstamos** con alertas visuales para vencimientos
+- **Formularios intuitivos** con validación en tiempo real
+- **Tema oscuro moderno** con colores suaves y diseño profesional
+
+---
+
+## 🤝 Contribuciones
+
+Este proyecto fue desarrollado como parte de un trabajo académico. Si deseas contribuir o reportar problemas, no dudes en crear un issue o pull request.
+
+---
+
+## 📄 Licencia
+
+Este proyecto es de código abierto y está disponible bajo la licencia MIT.
