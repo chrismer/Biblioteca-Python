@@ -1,4 +1,3 @@
-# gui/frames/list_frame.py
 import customtkinter as ctk
 from tkinter import messagebox
 from typing import TYPE_CHECKING, List
@@ -14,7 +13,7 @@ class ListFrame(ctk.CTkFrame):
         super().__init__(master)
         self.master = master
         self.gestor = gestor
-        self.titulo = titulo  # Guardar el título como atributo de la instancia
+        self.titulo = titulo 
 
         # Título dinámico (ej: "Libros Disponibles")
         ctk.CTkLabel(self, text=titulo, font=("Arial", 20, "bold")).pack(pady=20)
@@ -51,7 +50,6 @@ class ListFrame(ctk.CTkFrame):
             actions_frame = ctk.CTkFrame(scroll_frame, fg_color="transparent")
             actions_frame.grid(row=row_num, column=4, padx=10)
 
-            # BOTONES INTELIGENTES según disponibilidad
             # Botón Prestar - Solo activo si hay ejemplares disponibles
             if disponibles > 0:
                 prestar_btn = ctk.CTkButton(
@@ -115,7 +113,7 @@ class ListFrame(ctk.CTkFrame):
         try:
             self.gestor.devolver_libro(libro.codigo)
             messagebox.showinfo("Éxito", f"Se ha devuelto un ejemplar de '{libro.titulo}'.")
-            # Recargar la vista actual de forma inteligente
+            # Recargar la vista actual
             self.recargar_vista_actual()
         except Exception as e:
             messagebox.showerror("Error", str(e))
@@ -155,7 +153,7 @@ class ListFrame(ctk.CTkFrame):
             # Forzar que la ventana aparezca al frente
             ejemplares_window.lift()
             ejemplares_window.focus_force()
-            ejemplares_window.grab_set()  # Hacer modal
+            ejemplares_window.grab_set()
             
             ctk.CTkLabel(ejemplares_window, text=f"📚 Ejemplares de '{libro.titulo}'", 
                         font=("Arial", 16, "bold")).pack(pady=10)

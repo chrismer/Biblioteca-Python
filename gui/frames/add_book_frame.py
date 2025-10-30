@@ -26,7 +26,7 @@ class AddBookFrame(BaseFrame):
         form_frame.grid_columnconfigure(0, weight=0)
         form_frame.grid_columnconfigure(1, weight=1)
 
-        # --- Formulario Mejorado ---
+
         self.estanterias = self.gestor.get_todas_las_estanterias()
         self.selected_shelf_id = ctk.StringVar()
 

@@ -1,4 +1,3 @@
-# gui/frames/main_frame.py
 import customtkinter as ctk
 from tkinter import messagebox
 from typing import TYPE_CHECKING
@@ -115,18 +114,6 @@ class MainFrame(ctk.CTkFrame):
                                         corner_radius=20)
         self.search_entry.pack(side="left", padx=(0, 10))
         self.search_entry.bind("<Return>", self.buscar_desde_header)
-        
-        # search_btn = ctk.CTkButton(search_frame,
-        #                           text="🔍",
-        #                           width=35,
-        #                           height=35,
-        #                           text_color="white",
-        #                           font=("Segoe UI", 14),
-        #                           fg_color=self.colors['primary'],
-        #                           hover_color=self.colors['accent'],
-        #                           corner_radius=20,
-        #                           command=self.buscar_desde_header)
-        # search_btn.pack(side="left")
 
     def create_hero_section(self):
         """Crea la sección hero con imagen de fondo."""
@@ -145,46 +132,6 @@ class MainFrame(ctk.CTkFrame):
                 bg_label = ctk.CTkLabel(hero_frame, image=bg_ctk_image, text="", corner_radius=20)
                 bg_label.place(x=0.5, y=0, anchor="nw")
                 print("✅ Imagen de fondo cargada correctamente")
-                
-                # Contenido del hero superpuesto sobre la imagen
-                #content_frame = ctk.CTkFrame(hero_frame, fg_color="transparent")
-                #content_frame.place(relx=0.5, rely=0.5, anchor="center")
-                
-                # ctk.CTkLabel(content_frame, 
-                #             text="Gestión Bibliotecaria Profesional", 
-                #             font=("Segoe UI", 32, "bold"),
-                #             text_color="white").pack(pady=(0, 10))
-                
-                # ctk.CTkLabel(content_frame, 
-                #             text="Sistema completo para administrar libros, usuarios y préstamos", 
-                #             font=("Segoe UI", 16),
-                #             text_color="white").pack(pady=(0, 20))
-                
-                # Botones de acción rápida
-                # quick_actions = ctk.CTkFrame(content_frame, fg_color="transparent")
-                # quick_actions.pack(pady=10)
-                
-                # ctk.CTkButton(quick_actions, 
-                #              text="➕ Agregar Libro", 
-                #              font=("Segoe UI", 14, "bold"),
-                #              width=150, height=40,
-                #              fg_color="white", 
-                #              text_color=self.colors['primary'],
-                #              hover_color="#F1F5F9",
-                #              corner_radius=20,
-                #              command=lambda: self.master.switch_frame(AddBookFrame)).pack(side="left", padx=10)
-                
-                # ctk.CTkButton(quick_actions, 
-                #              text="🔍 Buscar Libro", 
-                #              font=("Segoe UI", 14, "bold"),
-                #              width=150, height=40,
-                #              fg_color="transparent", 
-                #              text_color="white",
-                #              border_width=2,
-                #              border_color="white",
-                #              hover_color=self.colors['accent'],
-                #              corner_radius=20,
-                #              command=lambda: self.master.switch_frame(SearchBookFrame)).pack(side="left", padx=10)
                 
         except Exception as e:
             print(f"ℹ️ Imagen de fondo no encontrada: {e}")

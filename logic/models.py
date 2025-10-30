@@ -67,7 +67,7 @@ class Libro:
         self.autor: Optional[Autor] = None
         self.genero: Optional[Genero] = None
         self.ejemplares: List[Ejemplar] = []
-        self.historial_prestamos: int = 0 # Para el libro más prestado
+        self.historial_prestamos: int = 0 
 
     @property
     def cantidad_disponibles(self) -> int:
@@ -76,85 +76,8 @@ class Libro:
     @property
     def cantidad_prestados(self) -> int:
         return len([e for e in self.ejemplares if e.estado == 'prestado'])
-    # @property
-    # def autor(self) -> Optional['Autor']:
-    #     return self._autor
     
-    # @autor.setter
-    # def autor(self, valor: 'Autor'):
-    #     self._autor = valor
-    
-    # @property
-    # def genero(self) -> Optional['Genero']:
-    #     return self._genero
-    
-    # @genero.setter
-    # def genero(self, valor: 'Genero'):
-    #     self._genero = valor
-    
-    # @property
-    # def ejemplares(self) -> List['Ejemplar']:
-    #     return self._ejemplares
-    
-    # @ejemplares.setter
-    # def ejemplares(self, valor: List['Ejemplar']):
-    #     self._ejemplares = valor
-    
-    # @property
-    # def cantidad_total(self) -> int:
-    #     """Total de ejemplares del libro."""
-    #     return len(self._ejemplares)
-    
-    # @property
-    # def cantidad_disponibles(self) -> int:
-    #     """Ejemplares disponibles para préstamo."""
-    #     return len([e for e in self._ejemplares if e.estado == 'disponible'])
-    
-    # @property
-    # def cantidad_prestados(self) -> int:
-    #     """Ejemplares actualmente prestados."""
-    #     return len([e for e in self._ejemplares if e.estado == 'prestado'])
-    
-    # @property
-    # def estado(self) -> str:
-    #     """Estado basado en disponibilidad."""
-    #     return "Disponible" if self.cantidad_disponibles > 0 else "Agotado"
-    
-    # # ========== PROPIEDADES DE COMPATIBILIDAD ==========
-    # @property
-    # def disponibles(self) -> int:
-    #     """Alias para cantidad_disponibles - compatibilidad con sistema anterior."""
-    #     # Usar datos legacy si están disponibles
-    #     if hasattr(self, '_disponibles_legacy'):
-    #         return self._disponibles_legacy
-    #     return self.cantidad_disponibles
-    
-    # @property
-    # def historial_prestamos(self) -> int:
-    #     """Historial total de préstamos - calculado dinámicamente."""
-    #     if hasattr(self, '_historial_prestamos_legacy'):
-    #         return self._historial_prestamos_legacy
-    #     # Por ahora retornamos 0, pero se podría calcular desde la base de datos
-    #     return 0
-    
-    # @property
-    # def autor(self) -> str:
-    #     """Nombre completo del autor para compatibilidad."""
-    #     if hasattr(self, '_autor_legacy'):
-    #         return self._autor_legacy
-    #     if self._autor:
-    #         return self._autor.nombre_completo
-    #     return "Autor Desconocido"
-    
-    # # Propiedades adicionales de compatibilidad
-    # @property 
-    # def cantidad_total(self) -> int:
-    #     """Cantidad total de ejemplares."""
-    #     if hasattr(self, '_cantidad_total_legacy'):
-    #         return self._cantidad_total_legacy
-    #     return len(self._ejemplares)
-    
-    # Métodos de compatibilidad para préstamos (simplificados)
+    # Métodos de compatibilidad para préstamos
     def prestar(self) -> bool:
         """Método de compatibilidad para préstamos."""
         if hasattr(self, '_disponibles_legacy') and hasattr(self, '_cantidad_prestados_legacy'):
@@ -182,7 +105,7 @@ class Ejemplar:
         self.id = id
         self.libro_id = libro_id
         self.codigo_ejemplar = codigo_ejemplar
-        self.estado = estado  # disponible, prestado, dañado, perdido, en_reparacion
+        self.estado = estado  
         self.observaciones = observaciones
         self.fecha_adquisicion = fecha_adquisicion or date.today()
         self.ubicacion_fisica = ubicacion_fisica
@@ -227,7 +150,7 @@ class Prestamo:
         self.fecha_prestamo = fecha_prestamo or date.today()
         self.fecha_devolucion_esperada = fecha_devolucion_esperada
         self.fecha_devolucion_real = fecha_devolucion_real
-        self.estado = estado  # activo, devuelto, vencido
+        self.estado = estado 
         self.observaciones = observaciones
         self.renovaciones = renovaciones
         

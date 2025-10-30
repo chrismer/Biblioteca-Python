@@ -18,17 +18,17 @@ def confirmar(titulo: str, mensaje: str, parent=None) -> bool:
     Returns:
         True si el usuario confirma, False si cancela
     """
-    # Crear ventana personalizada - Más grande para que los botones no se aplasten
+    # Crear ventana personalizada
     dialog = ctk.CTkToplevel(parent)
     dialog.title(titulo)
-    dialog.geometry("500x280")  # Más ancha y más alta
+    dialog.geometry("500x280")
     dialog.resizable(False, False)
     dialog.transient(parent)
     dialog.grab_set()
     
     # Aplicar icono personalizado
     try:
-        # Buscar el icono en la carpeta assets (3 niveles arriba desde gui/utils/)
+        # Buscar el icono en la carpeta assets
         current_dir = os.path.dirname(os.path.abspath(__file__))
         icon_path = os.path.join(current_dir, "..", "..", "assets", "bibliohub_icon.png")
         icon_path = os.path.normpath(icon_path)
@@ -37,7 +37,7 @@ def confirmar(titulo: str, mensaje: str, parent=None) -> bool:
             icon_image = tk.PhotoImage(file=icon_path)
             dialog.iconphoto(True, icon_image)
     except Exception:
-        pass  # Continuar sin icono si hay error
+        pass  
     
     # Centrar la ventana
     dialog.update_idletasks()
@@ -58,12 +58,12 @@ def confirmar(titulo: str, mensaje: str, parent=None) -> bool:
         'white': '#FFFFFF'
     }
     
-    # Frame principal con más espacio
+    # Frame principal
     main_frame = ctk.CTkFrame(dialog, fg_color=colors['white'])
     main_frame.pack(fill="both", expand=True, padx=25, pady=25)
     
     # Icono y título - Header más visible
-    header_frame = ctk.CTkFrame(main_frame, fg_color="#1E40AF")  # Azul más claro
+    header_frame = ctk.CTkFrame(main_frame, fg_color="#1E40AF") 
     header_frame.pack(fill="x", pady=(0, 20))
     
     ctk.CTkLabel(header_frame, 
@@ -90,29 +90,29 @@ def confirmar(titulo: str, mensaje: str, parent=None) -> bool:
         result.set(False)
         dialog.destroy()
     
-    # Botón Sí - Más grande y con mejor espaciado
+    # Botón Sí 
     ctk.CTkButton(button_frame,
                  text="✅ Sí",
-                 width=120,  # Más ancho
-                 height=45,  # Más alto
-                 fg_color="#10B981",  # Verde más claro
-                 hover_color="#059669",  # Verde más oscuro al hover
+                 width=120,
+                 height=45, 
+                 fg_color="#10B981",
+                 hover_color="#059669",
                  text_color="white",
-                 font=("Segoe UI", 14, "bold"),  # Fuente más grande
+                 font=("Segoe UI", 14, "bold"), 
                  corner_radius=10,
-                 command=on_si).pack(side="left", padx=15)  # Más separación
+                 command=on_si).pack(side="left", padx=15) 
     
-    # Botón No - Más grande y con mejor espaciado
+    # Botón No 
     ctk.CTkButton(button_frame,
                  text="❌ No",
-                 width=120,  # Más ancho
-                 height=45,  # Más alto
-                 fg_color="#EF4444",  # Rojo más claro
-                 hover_color="#DC2626",  # Rojo más oscuro al hover
+                 width=120,  
+                 height=45,  
+                 fg_color="#EF4444",  
+                 hover_color="#DC2626",  
                  text_color="white",
-                 font=("Segoe UI", 14, "bold"),  # Fuente más grande
+                 font=("Segoe UI", 14, "bold"),  
                  corner_radius=10,
-                 command=on_no).pack(side="left", padx=15)  # Más separación
+                 command=on_no).pack(side="left", padx=15) 
     
     # Manejar cierre de ventana
     dialog.protocol("WM_DELETE_WINDOW", on_no)

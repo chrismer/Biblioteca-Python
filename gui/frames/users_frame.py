@@ -39,11 +39,6 @@ class UsersFrame(ctk.CTkFrame):
         # Mostrar lista por defecto
         self.mostrar_lista_usuarios()
 
-    # def limpiar_content_frame(self):
-    #     """Limpia el frame de contenido."""
-    #     for widget in self.content_frame.winfo_children():
-    #         widget.destroy()
-
     def mostrar_agregar_usuario(self):
         """Muestra el formulario para agregar usuario."""
         borrar_widgets(self.content_frame)
@@ -215,12 +210,11 @@ class UsersFrame(ctk.CTkFrame):
                          f"¿Seguro que quieres devolver este préstamo?", 
                          parent=window):
                 
-                # --- CORRECCIÓN CLAVE ---
                 # Se debe pasar el ID del ejemplar, no del préstamo.
                 if self.gestor.devolver_ejemplar(prestamo.ejemplar_id):
                     messagebox.showinfo("Éxito", "Préstamo devuelto correctamente.", parent=window)
                     window.destroy()
-                    self.mostrar_lista_usuarios()  # Refrescar la lista de usuarios principal
+                    self.mostrar_lista_usuarios() 
                 else:
                     messagebox.showerror("Error", "No se pudo devolver el préstamo.", parent=window)
         except Exception as e:
@@ -238,7 +232,6 @@ class UsersFrame(ctk.CTkFrame):
         self.entry_buscar.pack(side="left", padx=10, expand=True, fill="x")
         ctk.CTkButton(search_panel, text="Buscar", command=self.buscar_usuario).pack(side="left", padx=10)
         
-        # --- CORRECCIÓN ---
         # Nos aseguramos de que el nombre sea 'self.results_panel'
         self.results_panel = ctk.CTkScrollableFrame(self.content_frame)
         self.results_panel.pack(pady=10, padx=10, fill="both", expand=True)

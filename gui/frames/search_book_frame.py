@@ -3,8 +3,8 @@ from tkinter import messagebox
 from typing import TYPE_CHECKING, List
 from gui.utils.helpers import borrar_widgets
 from .base_frame import BaseFrame
-from logic.models import Libro, Ejemplar # Importar modelos
-from gui.utils.dialogs import confirmar # Importar diálogos
+from logic.models import Libro, Ejemplar
+from gui.utils.dialogs import confirmar
 
 if TYPE_CHECKING:
     from gui.app import App
@@ -104,8 +104,8 @@ class SearchBookFrame(BaseFrame):
         table_container.pack(fill="both", expand=True)
 
         # Configurar columnas para que se expandan
-        table_container.grid_columnconfigure(1, weight=3) # Título
-        table_container.grid_columnconfigure(2, weight=2) # Autor
+        table_container.grid_columnconfigure(1, weight=3) 
+        table_container.grid_columnconfigure(2, weight=2) 
 
         # Encabezados
         headers = ["Código", "Título", "Autor", "Disponibles", "Acciones"]

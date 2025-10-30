@@ -15,8 +15,8 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("BiblioHub - Sistema de Gestión Bibliotecaria")
-        self.geometry("1400x800")  # Más grande para diseño web
-        self.minsize(1200, 700)    # Tamaño mínimo
+        self.geometry("1400x800") 
+        self.minsize(1200, 700)
         
         # Configurar icono personalizado
         self.set_custom_icon()
@@ -26,7 +26,7 @@ class App(ctk.CTk):
         ctk.set_default_color_theme("blue")
         
         # Configurar colores personalizados
-        self.configure(fg_color="#F8F9FA")  # Fondo gris muy claro
+        self.configure(fg_color="#F8F9FA")
         
         self.gestor = GestorBiblioteca()
         

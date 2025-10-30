@@ -12,9 +12,6 @@ class AddShelfFrame(ctk.CTkFrame):
         self.master = master
         self.gestor = gestor
 
-       # self.grid_columnconfigure(0, weight=1)
-       # self.grid_columnconfigure(1, weight=1)
-
         # Título
         ctk.CTkLabel(self, text="Agregar Nueva Estantería", font=("Arial", 20, "bold")).pack(pady=20)
         
@@ -22,7 +19,7 @@ class AddShelfFrame(ctk.CTkFrame):
         form_frame = ctk.CTkFrame(self)
         form_frame.pack(pady=10, padx=50)
 
-        form_frame.grid_columnconfigure(0, weight=0) # Columna de labels fija
+        form_frame.grid_columnconfigure(0, weight=0)
         form_frame.grid_columnconfigure(1, weight=1)
 
         # Formulario

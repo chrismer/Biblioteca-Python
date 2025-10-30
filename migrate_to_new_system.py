@@ -46,7 +46,7 @@ def migrar_sistema():
             if ejemplares_existentes == 0 and cantidad_total > 0:
                 # Crear ejemplares individuales
                 for i in range(cantidad_total):
-                    codigo_ejemplar = f"{codigo}-{i+1:03d}"  # Ej: LIB001-001, LIB001-002
+                    codigo_ejemplar = f"{codigo}-{i+1:03d}" 
                     
                     # Determinar estado del ejemplar
                     if i < cantidad_prestados:

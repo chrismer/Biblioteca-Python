@@ -102,8 +102,6 @@ class DBManager:
         self.conn.commit()
 
 
-    # --- ¡COMIENZAN LAS FUNCIONES CORREGIDAS! ---
-
     def get_libros_disponibles(self) -> List[Libro]:
         """Obtiene libros que tienen al menos un ejemplar disponible."""
         cursor = self.conn.cursor()
@@ -238,11 +236,11 @@ class DBManager:
 
         # Añadir información del autor
         autor = self.get_autor(libro.autor_id)
-        libro.autor = autor # Asignamos el objeto Autor completo
+        libro.autor = autor 
 
         # Añadir información de ejemplares
         ejemplares = self.get_ejemplares_por_libro(libro.id)
-        libro.ejemplares = ejemplares # Asignamos la lista de ejemplares
+        libro.ejemplares = ejemplares 
 
         # Añadir historial de préstamos si la consulta lo incluye
         if 'total_prestamos' in row_dict:
@@ -896,10 +894,10 @@ class DBManager:
         """)
         return [self._crear_libro_compatible(row) for row in cursor.fetchall()]
 
-    # Y modifica la función existente de mover_libro para que chequee la cantidad de ejemplares
+    # función mover_libro para que chequee la cantidad de ejemplares
     def mover_libro(self, libro_id: int, nueva_estanteria_id: int):
         def _mover(cursor):
-        # --- Parte 1: Validación de capacidad (esto ya lo tenías y está perfecto) ---
+            
             cursor.execute("SELECT COUNT(e.id) FROM ejemplares e JOIN libros l ON e.libro_id = l.id WHERE l.estanteria_id = ?", (nueva_estanteria_id,))
             count = cursor.fetchone()[0]
             
@@ -908,7 +906,7 @@ class DBManager:
             if not row_estanteria:
                 raise ValueError(f"Estantería {nueva_estanteria_id} no existe")
             capacidad = row_estanteria['capacidad']
-            nueva_estanteria_nombre = row_estanteria['nombre'] # <-- Obtenemos el nombre nuevo
+            nueva_estanteria_nombre = row_estanteria['nombre']
             
             cursor.execute("SELECT COUNT(*) FROM ejemplares WHERE libro_id = ?", (libro_id,))
             ejemplares_a_mover = cursor.fetchone()[0]
@@ -916,12 +914,12 @@ class DBManager:
             if (count + ejemplares_a_mover) > capacidad:
                 raise EstanteriaLlenaError(f"Estantería llena. Capacidad: {capacidad}, Libros actuales: {count}, No caben {ejemplares_a_mover} más.")
             
-            # --- Parte 2: Mover el libro (esto también está bien) ---
+            
             cursor.execute("UPDATE libros SET estanteria_id = ? WHERE id = ?", (nueva_estanteria_id, libro_id))
             if cursor.rowcount == 0:
                 raise ValueError(f"No se encontró libro con id {libro_id}")
 
-            # --- Parte 3: ¡LA NUEVA LÓGICA! Actualizar la ubicación descriptiva de los ejemplares ---
+
             print(f"Actualizando ubicaciones descriptivas para la estantería '{nueva_estanteria_nombre}'...")
             
             # Obtenemos todos los ejemplares del libro que se movió
@@ -948,7 +946,7 @@ class DBManager:
         self.execute_transaction(_delete)
 
     def actualizar_libro_completo(self, libro_id: int, datos: dict):
-        # Esta función es compleja, aquí una versión simplificada para el título
+        # versión simplificada para el título
         def _update(cursor):
             if 'titulo' in datos:
                 cursor.execute("UPDATE libros SET titulo = ? WHERE id = ?", (datos['titulo'], libro_id))

@@ -128,10 +128,8 @@ class GestorBiblioteca:
         
         # Prestar el primer ejemplar disponible
         primer_ejemplar = ejemplares_disponibles[0]
-        # Por ahora, crear un préstamo ficticio (sin usuario específico)
-        # En el futuro, esto debería requerir un usuario_id
         try:
-            self.prestar_ejemplar(primer_ejemplar.id, usuario_id=1)  # Usuario por defecto
+            self.prestar_ejemplar(primer_ejemplar.id, usuario_id=1)
         except Exception as e:
             raise ValueError(f"Error al prestar ejemplar: {e}")
 
@@ -289,7 +287,7 @@ class GestorBiblioteca:
     def get_prestamos_usuario(self, usuario_id: int) -> List[Prestamo]:
         return self.db.get_prestamos_por_usuario(usuario_id)
 
-    # ============ FUNCIONES DE COMPATIBILIDAD (Sistema anterior) ============
+    # ============ FUNCIONES DE COMPATIBILIDAD  ============
     def agregar_libro_simple(self, codigo: str, titulo: str, autor_nombre: str, autor_apellido: str,
                             anio: int, cantidad_ejemplares: int, estanteria_id: int,
                             genero_nombre: Optional[str] = None, isbn: Optional[str] = None,
@@ -368,7 +366,7 @@ class GestorBiblioteca:
             
             # Crear ejemplares automáticamente
             for i in range(cantidad_ejemplares):
-                codigo_ejemplar = f"{codigo}-{i+1:03d}"  # Ej: LIB001-001, LIB001-002
+                codigo_ejemplar = f"{codigo}-{i+1:03d}"
                 cursor.execute("""INSERT INTO ejemplares (libro_id, codigo_ejemplar) VALUES (?, ?)""",
                               (libro_id, codigo_ejemplar))
             
@@ -390,7 +388,7 @@ class GestorBiblioteca:
         """Modifica un libro existente con todos sus datos."""
         return self.db.modificar_libro_completo(libro_id, cambios)
 
-    # ============ FUNCIONES DE REPORTES MEJORADAS ============
+    # ============ FUNCIONES DE REPORTES ============
     def get_resumen_biblioteca(self) -> dict:
         """Obtiene un resumen completo de la biblioteca."""
         cursor = self.db.conn.cursor()
@@ -430,8 +428,8 @@ class GestorBiblioteca:
 
     def mover_libro(self, libro_id: int, nueva_estanteria_id: int) -> None:
         """Mueve un libro y todos sus ejemplares a una nueva estantería."""
-        # La validación de capacidad ya se hace en db_manager, aquí solo orquestamos.
-        libro = self.db.get_libro_por_id(libro_id) # Necesitaremos esta nueva función en db_manager
+        
+        libro = self.db.get_libro_por_id(libro_id)
         if not libro:
             raise ValueError(f"No se encontró el libro con ID {libro_id}")
         

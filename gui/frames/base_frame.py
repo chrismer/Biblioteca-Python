@@ -15,7 +15,7 @@ class BaseFrame(ctk.CTkFrame):
         self.master = master
         self.gestor = gestor
         
-        # Colores modernos compartidos - Paleta personalizada
+        # Colores compartidos - Paleta personalizada
         self.colors = {
             'primary': '#002333',      # Azul personalizado
             'secondary': '#64748B',    # Gris azulado

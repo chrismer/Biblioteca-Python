@@ -391,6 +391,6 @@ class LoansFrame(ctk.CTkFrame):
         ctk.CTkLabel(self.content_frame, text="📊 Historial de Préstamos", 
                     font=("Arial", 16, "bold")).pack(pady=10)
         
-        # Aquí podrías implementar filtros por fecha, usuario, etc.
+        
         ctk.CTkLabel(self.content_frame, text="Funcionalidad en desarrollo...\n\nAquí se mostrará el historial completo de préstamos con filtros avanzados.", 
                     fg_color="blue").pack(pady=50)

@@ -210,7 +210,7 @@ class EditBookFrame(ctk.CTkFrame):
         info_ejemplares = ctk.CTkFrame(grid_frame, fg_color="#002333")
         info_ejemplares.grid(row=1, column=0, columnspan=2, pady=10, sticky="ew")
         
-        # Obtener cantidad de ejemplares de forma segura (reutilizando la lógica anterior)
+        # Obtener cantidad de ejemplares de forma segura
         try:
             if hasattr(self.libro, 'ejemplares') and self.libro.ejemplares:
                 cantidad_ejemplares = len(self.libro.ejemplares)
