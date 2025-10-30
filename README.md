@@ -22,10 +22,18 @@ BiblioHub está diseñado para ser intuitivo y potente, ofreciendo un conjunto c
 
 #### **📚 Gestión de Inventario**
 
-* **Gestión de Libros**: Creación, edición y eliminación de libros con información detallada (ISBN, editorial, año, etc.).
-* **Gestión de Ejemplares**: El sistema distingue entre el "libro" como obra y el "ejemplar" como copia física, permitiendo un seguimiento individual de cada copia.
-* **Administración de Estanterías**: Creación, modificación y eliminación de estanterías, con control de capacidad para evitar la sobrecarga.
-* **Movimiento de Libros**: Interfaz dedicada para mover un libro y todos sus ejemplares de una estantería a otra, actualizando automáticamente sus ubicaciones físicas.
+* **Gestión de Libros**: Creación, edición y eliminación de libros con información detallada (ISBN, editorial, año, descripción, etc.).
+* **Gestión de Ejemplares**: El sistema distingue entre el "libro" como obra y el "ejemplar" como copia física, permitiendo un seguimiento individual de cada copia con ubicaciones físicas específicas.
+* **Administración de Estanterías**: 
+  - Creación, modificación y eliminación de estanterías
+  - Control de capacidad máxima (límite de 150 ejemplares por estantería)
+  - Validación automática: no se puede eliminar una estantería ocupada
+  - Solo se pueden eliminar estanterías vacías (sin ejemplares)
+* **Movimiento de Libros**: 
+  - Interfaz con búsqueda inteligente en tiempo real para seleccionar libros
+  - Mueve un libro y todos sus ejemplares de una estantería a otra
+  - Actualiza automáticamente las ubicaciones físicas de todos los ejemplares
+  - Validación de capacidad: impide mover libros si la estantería destino no tiene espacio suficiente
 
 #### **🔄 Sistema de Préstamos Profesional**
 
@@ -41,7 +49,9 @@ BiblioHub está diseñado para ser intuitivo y potente, ofreciendo un conjunto c
 #### **🔍 Búsqueda y Reportes**
 
 * **Búsqueda Inteligente**: Un potente motor de búsqueda que encuentra libros por título, autor, código o ISBN, priorizando las coincidencias exactas.
+* **Búsqueda en Tiempo Real**: Búsqueda dinámica en la interfaz de "Mover Libros" que actualiza resultados mientras escribes.
 * **Dashboard de Estadísticas**: La pantalla principal ofrece un resumen en tiempo real del estado de la biblioteca (total de libros, ejemplares disponibles, préstamos activos y vencidos).
+* **Vistas Especializadas**: Listados dedicados para libros disponibles, libros prestados, y libro más prestado.
 
 ---
 
@@ -168,32 +178,59 @@ Biblioteca/
 BiblioHub cumple con todos los requisitos especificados para el proyecto:
 
 ### ✅ Requisitos Básicos (Verde)
-- Crear, modificar y eliminar libros
-- Crear, modificar y eliminar estanterías
-- Prestar y devolver ejemplares de libros
-- Buscar libros por código, título y autor
-- Validaciones: estanterías únicas, códigos únicos, control de capacidad
+- ✅ Crear, modificar y eliminar libros
+- ✅ Crear, modificar y eliminar estanterías (solo se eliminan si están vacías)
+- ✅ Prestar y devolver ejemplares de libros
+- ✅ Buscar libros por código, título y autor
+- ✅ Validaciones implementadas:
+  - Nombres de estanterías únicos
+  - Códigos de libros únicos
+  - Los nombres de libros SÍ pueden repetirse
+  - Control de capacidad de estanterías (máximo 150 ejemplares)
+  - No se pueden guardar ejemplares en estanterías llenas
 
 ### ✅ Requisitos Intermedios (Naranja)
-- Mostrar libros disponibles y prestados
-- Mostrar libro más prestado
-- Validación de préstamos (no prestar sin ejemplares disponibles)
-- Interfaz gráfica completa con CustomTkinter
+- ✅ Mostrar libros disponibles (vista dedicada)
+- ✅ Mostrar libros prestados (vista dedicada)
+- ✅ Mostrar libro más prestado (con estadísticas)
+- ✅ Validación de préstamos: no se puede prestar un libro sin ejemplares disponibles
+- ✅ Interfaz gráfica completa con CustomTkinter:
+  - Diseño moderno con tema oscuro
+  - Navegación intuitiva entre pantallas
+  - Formularios con validación en tiempo real
+  - Diálogos de confirmación personalizados
+  - Búsqueda en tiempo real
 
 ### ✅ Requisitos Avanzados (Violeta)
-- Mover libros entre estanterías (con actualización de ubicaciones físicas)
-- Base de datos SQLite con modelo normalizado
+- ✅ Mover libros entre estanterías:
+  - Interfaz con búsqueda en tiempo real
+  - Mueve el libro con TODOS sus ejemplares
+  - Actualiza automáticamente las ubicaciones físicas descriptivas
+  - Validación de capacidad (impide mover si no hay espacio)
+- ✅ Base de datos SQLite con modelo normalizado:
+  - Separación de libros, autores, géneros, estanterías y ejemplares
+  - Sistema de préstamos con usuarios
+  - Integridad referencial con claves foráneas
+  - Transacciones para garantizar consistencia de datos
 
 ---
 
-## 🎨 Capturas de Pantalla
+## 🎨 Interfaz de Usuario
 
 BiblioHub cuenta con una interfaz moderna y amigable:
 
-- **Dashboard principal** con estadísticas en tiempo real
-- **Búsqueda inteligente** con resultados instantáneos
+- **Dashboard principal** con estadísticas en tiempo real y acceso rápido a todas las funcionalidades
+- **Búsqueda inteligente** con resultados instantáneos desde el menú principal
+- **Gestión de libros**: Agregar, editar y eliminar con formularios completos y validación en tiempo real
+- **Gestión de estanterías**: 
+  - Crear nuevas estanterías con nombre y capacidad
+  - Editar estanterías existentes (ventana modal con scroll)
+  - Eliminar estanterías vacías con confirmación
+  - Vista en tabla con información de ocupación en tiempo real
+- **Mover libros**: Interfaz intuitiva con búsqueda en tiempo real y selección por pasos
 - **Gestión de préstamos** con alertas visuales para vencimientos
-- **Formularios intuitivos** con validación en tiempo real
+- **Vistas de ejemplares**: Información detallada de cada copia física con su ubicación
+- **Diálogos de confirmación** personalizados para acciones críticas
 - **Tema oscuro moderno** con colores suaves y diseño profesional
 
 ---
