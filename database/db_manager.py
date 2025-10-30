@@ -183,6 +183,14 @@ class DBManager:
                 raise ValueError(f"No se encontró libro con código {codigo}")
         self.execute_transaction(_delete)
 
+    def insertar_estanteria(self, nombre: str, capacidad: int) -> int:
+        """Inserta una nueva estantería en la base de datos."""
+        def _insert(cursor):
+            cursor.execute("INSERT INTO estanterias (nombre, capacidad) VALUES (?, ?)", 
+                         (nombre, capacidad))
+            return cursor.lastrowid
+        return self.execute_transaction(_insert)
+
     def eliminar_estanteria(self, id: int):
         def _delete(cursor):
             cursor.execute("SELECT COUNT(*) FROM libros WHERE estanteria_id = ?", (id,))

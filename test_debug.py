@@ -30,7 +30,7 @@ def test_insertar_estanteria():
         
         # Verificar en la base de datos
         print("\n7. Verificando en base de datos...")
-        estanterias = gestor.get_todas_las_estanterias()
+        estanterias = gestor.get_todas_estanterias()
         print(f"8. Total de estanterías: {len(estanterias)}")
         for est in estanterias:
             if "Debug" in est.nombre:

@@ -20,7 +20,7 @@ class GestorBiblioteca:
             raise ValueError("Capacidad debe ser un entero positivo")
         
         # Validar que no exista otra estantería con el mismo nombre
-        estanterias_existentes = self.db.get_todas_estanterias()
+        estanterias_existentes = self.db.get_todas_las_estanterias()
         for estanteria in estanterias_existentes:
             if estanteria.nombre.lower().strip() == nombre.lower().strip():
                 raise ValueError(f"Ya existe una estantería con el nombre '{nombre}'")

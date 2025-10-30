@@ -35,7 +35,7 @@ def inicializar_datos_prueba():
             except Exception as e:
                 print(f"  ⚠️ Estantería '{nombre}' ya existe o error: {e}")
                 # Buscar la estantería existente
-                estanterias_existentes = gestor.get_todas_las_estanterias()
+                estanterias_existentes = gestor.get_todas_estanterias()
                 for est in estanterias_existentes:
                     if est.nombre == nombre:
                         estanteria_ids[nombre] = est.id

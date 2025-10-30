@@ -13,7 +13,7 @@ class MoveBookFrame(ctk.CTkFrame):
         self.master = master
         self.gestor = gestor
         self.libros = self.gestor.get_todos_los_libros()
-        self.estanterias = self.gestor.get_todas_las_estanterias()
+        self.estanterias = self.gestor.get_todas_estanterias()
         self.selected_book = ctk.StringVar(value="Seleccione un libro...")
         self.selected_shelf = ctk.StringVar(value="Seleccione destino...")
 

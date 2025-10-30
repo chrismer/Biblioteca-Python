@@ -198,7 +198,7 @@ class EditBookFrame(ctk.CTkFrame):
         # Estantería
         ctk.CTkLabel(grid_frame, text="Estantería *").grid(row=0, column=0, sticky="w", padx=10, pady=5)
         try:
-            estanterias = self.gestor.get_todas_las_estanterias()
+            estanterias = self.gestor.get_todas_estanterias()
             estanteria_names = [f"{e.id} - {e.nombre}" for e in estanterias]
             self.estanteria_combo = ctk.CTkComboBox(grid_frame, values=estanteria_names, width=300, variable=self.estanteria_var)
             self.estanteria_combo.grid(row=0, column=1, padx=10, pady=5)

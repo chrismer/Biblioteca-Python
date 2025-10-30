@@ -21,13 +21,13 @@ class AddBookFrame(BaseFrame):
         
         # --- Frame contenedor para el formulario ---
         form_frame = ctk.CTkFrame(self.content_frame, fg_color=self.colors['white'], corner_radius=15)
-        form_frame.pack(pady=10, fill="both", expand=True)
+        form_frame.pack(padx=40, pady=10, fill="both", expand=True)
 
         form_frame.grid_columnconfigure(0, weight=0)
         form_frame.grid_columnconfigure(1, weight=1)
 
 
-        self.estanterias = self.gestor.get_todas_las_estanterias()
+        self.estanterias = self.gestor.get_todas_estanterias()
         self.selected_shelf_id = ctk.StringVar()
 
         # Información del libro
