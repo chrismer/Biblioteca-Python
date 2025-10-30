@@ -114,12 +114,13 @@ class ManageShelvesFrame(BaseFrame):
             header_frame.pack(fill="x", pady=(0, 10))
             
             headers = ["ID", "Nombre", "Capacidad", "Ocupados", "Libres", "Acciones"]
-            header_frame.grid_columnconfigure(5, weight=1)
+            widths = [50, 200, 100, 100, 100, 200]  # Anchos fijos para cada columna
             
             for i, header in enumerate(headers):
                 ctk.CTkLabel(header_frame, text=header, 
                            font=("Segoe UI", 12, "bold"),
-                           text_color="white").grid(row=0, column=i, padx=10, pady=10, sticky="ew")
+                           text_color="white",
+                           width=widths[i]).grid(row=0, column=i, padx=10, pady=10)
             
             # Datos de estanterías
             for estanteria in estanterias:
@@ -141,20 +142,22 @@ class ManageShelvesFrame(BaseFrame):
         # Frame para la fila
         row_frame = ctk.CTkFrame(self.list_frame, fg_color="white", corner_radius=8)
         row_frame.pack(fill="x", pady=2)
-        row_frame.grid_columnconfigure(5, weight=1)
+        
+        # Anchos fijos para alineación (mismos que los headers)
+        widths = [50, 200, 100, 100, 100, 200]
         
         # Datos
-        ctk.CTkLabel(row_frame, text=str(estanteria.id)).grid(row=0, column=0, padx=10, pady=10)
-        ctk.CTkLabel(row_frame, text=estanteria.nombre, font=("Segoe UI", 11, "bold")).grid(row=0, column=1, padx=10, pady=10, sticky="w")
-        ctk.CTkLabel(row_frame, text=str(estanteria.capacidad)).grid(row=0, column=2, padx=10, pady=10)
+        ctk.CTkLabel(row_frame, text=str(estanteria.id), width=widths[0]).grid(row=0, column=0, padx=10, pady=10)
+        ctk.CTkLabel(row_frame, text=estanteria.nombre, font=("Segoe UI", 11, "bold"), width=widths[1], anchor="w").grid(row=0, column=1, padx=10, pady=10)
+        ctk.CTkLabel(row_frame, text=str(estanteria.capacidad), width=widths[2]).grid(row=0, column=2, padx=10, pady=10)
         
         # Ocupados con color
         color_ocupados = self.colors['danger'] if ocupados >= estanteria.capacidad else self.colors['primary']
-        ctk.CTkLabel(row_frame, text=str(ocupados), text_color=color_ocupados).grid(row=0, column=3, padx=10, pady=10)
+        ctk.CTkLabel(row_frame, text=str(ocupados), text_color=color_ocupados, width=widths[3]).grid(row=0, column=3, padx=10, pady=10)
         
         # Libres con color
         color_libres = self.colors['success'] if libres > 0 else self.colors['danger']
-        ctk.CTkLabel(row_frame, text=str(libres), text_color=color_libres).grid(row=0, column=4, padx=10, pady=10)
+        ctk.CTkLabel(row_frame, text=str(libres), text_color=color_libres, width=widths[4]).grid(row=0, column=4, padx=10, pady=10)
         
         # Botones de acción
         actions_frame = ctk.CTkFrame(row_frame, fg_color="transparent")

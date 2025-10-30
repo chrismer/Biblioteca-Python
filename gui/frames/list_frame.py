@@ -199,13 +199,13 @@ class ListFrame(ctk.CTkFrame):
                 scroll_frame = ctk.CTkScrollableFrame(ejemplares_window)
                 scroll_frame.pack(pady=10, padx=10, fill="both", expand=True)
                 
-                # Encabezados
-                headers = ["Código Ejemplar", "Estado", "Ubicación", "Fecha Adquisición", "Acciones"]
+                # Encabezados (sin columna de Acciones)
+                headers = ["Código Ejemplar", "Estado", "Ubicación", "Fecha Adquisición"]
                 for i, header in enumerate(headers):
                     ctk.CTkLabel(scroll_frame, text=header, font=("Arial", 12, "bold")).grid(
                         row=0, column=i, padx=10, pady=5)
                 
-                # Datos de ejemplares
+                # Datos de ejemplares (solo información, sin botones)
                 for row_num, ejemplar in enumerate(ejemplares, start=1):
                     ctk.CTkLabel(scroll_frame, text=ejemplar.codigo_ejemplar).grid(row=row_num, column=0, padx=10, pady=2)
                     
@@ -233,19 +233,6 @@ class ListFrame(ctk.CTkFrame):
                         row=row_num, column=2, padx=10, pady=2)
                     ctk.CTkLabel(scroll_frame, text=str(ejemplar.fecha_adquisicion)).grid(
                         row=row_num, column=3, padx=10, pady=2)
-                    
-                    # Botón de acción según estado
-                    if ejemplar.estado == 'disponible':
-                        accion_btn = ctk.CTkButton(scroll_frame, text="📤 Prestar", width=80,
-                                                 fg_color="#267365", command=lambda e=ejemplar: self.prestar_ejemplar_individual(e, ejemplares_window))
-                    elif ejemplar.estado == 'prestado':
-                        accion_btn = ctk.CTkButton(scroll_frame, text="📥 Devolver", width=80,
-                                                 fg_color="#F28705", command=lambda e=ejemplar: self.devolver_ejemplar_individual(e, ejemplares_window))
-                    else:
-                        accion_btn = ctk.CTkButton(scroll_frame, text="⚙️ Gestionar", width=80,
-                                                 fg_color="gray", state="disabled")
-                    
-                    accion_btn.grid(row=row_num, column=4, padx=10, pady=2)
                 
                 print(f"✅ Interfaz de ejemplares creada: {len(ejemplares)} ejemplares mostrados")
             else:

@@ -13,47 +13,6 @@ class GestorBiblioteca:
         except (ValueError, TypeError):
             return False
 
-    def agregar_libro(self, codigo: str, titulo: str, autor: str, anio: int, cantidad_total: int, estanteria_id: int) -> None:
-        if not all(isinstance(x, str) and x.strip() for x in [codigo, titulo, autor]):
-            raise ValueError("Código, título y autor deben ser strings no vacíos")
-        if not self.validar_anio(anio):
-            raise ValueError(f"Año debe estar entre 1500 y {datetime.now().year}")
-        if not isinstance(cantidad_total, int) or cantidad_total < 1:
-            raise ValueError("Cantidad total debe ser un entero positivo")
-        if not self.db.get_estanteria(estanteria_id):
-            raise ValueError(f"Estantería {estanteria_id} no existe")
-        libro = Libro(codigo, titulo, autor, anio, cantidad_total, estanteria_id)
-        self.db.insertar_libro(libro)
-
-    def modificar_libro(self, codigo: str, titulo: Optional[str] = None, autor: Optional[str] = None, anio: Optional[int] = None, cantidad_total: Optional[int] = None, estanteria_id: Optional[int] = None) -> None:
-        libro = self.db.get_libro_por_codigo(codigo)
-        if not libro:
-            raise ValueError(f"No se encontró libro con código {codigo}")
-        if titulo is not None:
-            if not isinstance(titulo, str) or not titulo.strip():
-                raise ValueError("Título debe ser un string no vacío")
-            libro.titulo = titulo
-        if autor is not None:
-            if not isinstance(autor, str) or not autor.strip():
-                raise ValueError("Autor debe ser un string no vacío")
-            libro.autor = autor
-        if anio is not None:
-            if not self.validar_anio(anio):
-                raise ValueError(f"Año debe estar entre 1500 y {datetime.now().year}")
-            libro.anio = anio
-        if cantidad_total is not None:
-            if not isinstance(cantidad_total, int) or cantidad_total < libro.cantidad_prestados:
-                raise ValueError("Cantidad total debe ser un entero >= prestados")
-            libro.cantidad_total = cantidad_total
-        if estanteria_id is not None:
-            if not self.db.get_estanteria(estanteria_id):
-                raise ValueError(f"Estantería {estanteria_id} no existe")
-            libro.estanteria_id = estanteria_id
-        self.db.actualizar_libro(libro)
-
-    def eliminar_libro(self, codigo: str) -> None:
-        self.db.eliminar_libro(codigo)
-
     def agregar_estanteria(self, nombre: str, capacidad: int) -> int:
         if not isinstance(nombre, str) or not nombre.strip():
             raise ValueError("Nombre debe ser un string no vacío")
@@ -102,68 +61,50 @@ class GestorBiblioteca:
         cursor.execute("SELECT COUNT(e.id) FROM ejemplares e JOIN libros l ON e.libro_id = l.id WHERE l.estanteria_id = ?", (estanteria_id,))
         return cursor.fetchone()[0]
 
+    # ============ ATAJOS DE PRÉSTAMOS (Para GUI) ============
     def prestar_libro(self, codigo: str) -> None:
-        """Presta automáticamente el primer ejemplar disponible de un libro."""
+        """Presta automáticamente el primer ejemplar disponible de un libro.
+        
+        Esta es una función de conveniencia para la GUI que simplifica
+        el préstamo cuando solo se conoce el código del libro.
+        """
         libro = self.db.get_libro_por_codigo(codigo)
         if not libro:
             raise ValueError(f"No se encontró libro con código {codigo}")
         
-        # Buscar el libro_id
-        if hasattr(libro, 'id') and libro.id:
-            libro_id = libro.id
-        else:
-            # Buscar por código
-            cursor = self.db.conn.cursor()
-            cursor.execute("SELECT id FROM libros WHERE codigo = ?", (codigo,))
-            row = cursor.fetchone()
-            if not row:
-                raise ValueError(f"No se encontró libro con código {codigo}")
-            libro_id = row['id']
-        
         # Obtener ejemplares de este libro y filtrar los disponibles
-        ejemplares = self.get_ejemplares_por_libro(libro_id)
+        ejemplares = self.get_ejemplares_por_libro(libro.id)
         ejemplares_disponibles = [e for e in ejemplares if e.estado == 'disponible']
+        
         if not ejemplares_disponibles:
-            raise ValueError("No hay ejemplares disponibles")
+            raise ValueError("No hay ejemplares disponibles para prestar")
         
         # Prestar el primer ejemplar disponible
         primer_ejemplar = ejemplares_disponibles[0]
-        try:
-            self.prestar_ejemplar(primer_ejemplar.id, usuario_id=1)
-        except Exception as e:
-            raise ValueError(f"Error al prestar ejemplar: {e}")
+        
+        # Usar usuario por defecto (ID: 1) para préstamos simples desde GUI
+        self.prestar_ejemplar(primer_ejemplar.id, usuario_id=1)
 
     def devolver_libro(self, codigo: str) -> None:
-        """Devuelve automáticamente el primer ejemplar prestado de un libro."""
+        """Devuelve automáticamente el primer ejemplar prestado de un libro.
+        
+        Esta es una función de conveniencia para la GUI que simplifica
+        la devolución cuando solo se conoce el código del libro.
+        """
         libro = self.db.get_libro_por_codigo(codigo)
         if not libro:
             raise ValueError(f"No se encontró libro con código {codigo}")
         
-        # Buscar el libro_id
-        if hasattr(libro, 'id') and libro.id:
-            libro_id = libro.id
-        else:
-            # Buscar por código
-            cursor = self.db.conn.cursor()
-            cursor.execute("SELECT id FROM libros WHERE codigo = ?", (codigo,))
-            row = cursor.fetchone()
-            if not row:
-                raise ValueError(f"No se encontró libro con código {codigo}")
-            libro_id = row['id']
-        
         # Obtener ejemplares prestados
-        ejemplares = self.get_ejemplares_por_libro(libro_id)
+        ejemplares = self.get_ejemplares_por_libro(libro.id)
         ejemplares_prestados = [e for e in ejemplares if e.estado == 'prestado']
         
         if not ejemplares_prestados:
-            raise ValueError("No hay ejemplares prestados")
+            raise ValueError("No hay ejemplares prestados para devolver")
         
         # Devolver el primer ejemplar prestado
         primer_prestado = ejemplares_prestados[0]
-        try:
-            self.devolver_ejemplar(primer_prestado.id)
-        except Exception as e:
-            raise ValueError(f"Error al devolver ejemplar: {e}")
+        self.devolver_ejemplar(primer_prestado.id)
 
     def buscar_libro_por_codigo(self, codigo: str) -> Optional[Libro]:
         return self.db.get_libro_por_codigo(codigo)
@@ -183,17 +124,8 @@ class GestorBiblioteca:
     def get_libro_mas_prestado(self) -> Optional[Libro]:
         return self.db.get_libro_mas_prestado()
 
-    def mover_libro(self, codigo: str, nueva_estanteria_id: int) -> None:
-        libro = self.db.get_libro_por_codigo(codigo)
-        if not libro:
-            raise ValueError(f"No se encontró libro con código {codigo}")
-        self.db.mover_libro(libro.id, nueva_estanteria_id)
-
     def get_libros_por_estanteria(self, estanteria_id: int) -> List[Libro]:
         return self.db.get_libros_por_estanteria(estanteria_id)
-
-    def get_todas_las_estanterias(self) -> List[Estanteria]:
-        return self.db.get_todas_las_estanterias()
 
     def cerrar(self):
         self.db.cerrar()
@@ -309,11 +241,7 @@ class GestorBiblioteca:
         if libro_existente:
             raise ValueError(f"Ya existe un libro con el código '{codigo}'")
         
-        # Validar que no exista otro libro con el mismo título (case-insensitive)
-        libros_existentes = self.db.get_todos_los_libros()
-        for libro in libros_existentes:
-            if libro.titulo.lower().strip() == titulo.lower().strip():
-                raise ValueError(f"Ya existe un libro con el título '{titulo}'")
+        # Nota: Los títulos SÍ pueden repetirse según requisitos del proyecto
         
         # Validar capacidad de la estantería
         estanteria = self.db.get_estanteria(estanteria_id)
@@ -383,10 +311,6 @@ class GestorBiblioteca:
                 elif "isbn" in str(e):
                     raise ValueError(f"Ya existe un libro con el ISBN '{isbn}'")
             raise e
-    
-    def modificar_libro_completo(self, libro_id: int, cambios: dict) -> bool:
-        """Modifica un libro existente con todos sus datos."""
-        return self.db.modificar_libro_completo(libro_id, cambios)
 
     # ============ FUNCIONES DE REPORTES ============
     def get_resumen_biblioteca(self) -> dict:
@@ -474,5 +398,4 @@ class GestorBiblioteca:
 
     def modificar_libro_completo(self, libro_id: int, datos_nuevos: dict) -> None:
         """Modifica los datos de un libro."""
-        # Aquí iría la lógica para validar los datos_nuevos y luego llamar a la BD
         self.db.actualizar_libro_completo(libro_id, datos_nuevos)

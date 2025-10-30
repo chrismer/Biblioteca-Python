@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 from tkinter import messagebox
 from logic.models import Usuario
 from gui.utils.helpers import borrar_widgets
+from gui.utils.dialogs import confirmar
 
 if TYPE_CHECKING:
     from gui.app import App
@@ -210,7 +211,6 @@ class UsersFrame(ctk.CTkFrame):
                          f"¿Seguro que quieres devolver este préstamo?", 
                          parent=window):
                 
-                # Se debe pasar el ID del ejemplar, no del préstamo.
                 if self.gestor.devolver_ejemplar(prestamo.ejemplar_id):
                     messagebox.showinfo("Éxito", "Préstamo devuelto correctamente.", parent=window)
                     window.destroy()

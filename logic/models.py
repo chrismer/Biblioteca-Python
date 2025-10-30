@@ -76,27 +76,6 @@ class Libro:
     @property
     def cantidad_prestados(self) -> int:
         return len([e for e in self.ejemplares if e.estado == 'prestado'])
-    
-    # Métodos de compatibilidad para préstamos
-    def prestar(self) -> bool:
-        """Método de compatibilidad para préstamos."""
-        if hasattr(self, '_disponibles_legacy') and hasattr(self, '_cantidad_prestados_legacy'):
-            if self._disponibles_legacy > 0:
-                self._disponibles_legacy -= 1
-                self._cantidad_prestados_legacy += 1
-                if hasattr(self, '_historial_prestamos_legacy'):
-                    self._historial_prestamos_legacy += 1
-                return True
-        return False
-    
-    def devolver(self) -> bool:
-        """Método de compatibilidad para devoluciones."""
-        if hasattr(self, '_cantidad_prestados_legacy') and hasattr(self, '_disponibles_legacy'):
-            if self._cantidad_prestados_legacy > 0:
-                self._cantidad_prestados_legacy -= 1
-                self._disponibles_legacy += 1
-                return True
-        return False
 
 class Ejemplar:
     def __init__(self, id: int, libro_id: int, codigo_ejemplar: str,

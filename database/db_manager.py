@@ -101,65 +101,6 @@ class DBManager:
         )''')
         self.conn.commit()
 
-
-    def get_libros_disponibles(self) -> List[Libro]:
-        """Obtiene libros que tienen al menos un ejemplar disponible."""
-        cursor = self.conn.cursor()
-        cursor.execute("""
-            SELECT l.* FROM libros l
-            JOIN ejemplares e ON l.id = e.libro_id
-            WHERE e.estado = 'disponible'
-            GROUP BY l.id
-        """)
-        return [self._crear_libro_compatible(row) for row in cursor.fetchall()]
-
-    def get_libros_prestados_legacy(self) -> List[Libro]:
-        """Obtiene libros que tienen al menos un ejemplar prestado (función legacy)."""
-        cursor = self.conn.cursor()
-        cursor.execute("""
-            SELECT l.* FROM libros l
-            JOIN ejemplares e ON l.id = e.libro_id
-            WHERE e.estado = 'prestado'
-            GROUP BY l.id
-        """)
-        return [self._crear_libro_compatible(row) for row in cursor.fetchall()]
-
-    def get_libro_mas_prestado_legacy(self) -> Optional[Libro]:
-        """Obtiene el libro con más préstamos registrados (función legacy)."""
-        cursor = self.conn.cursor()
-        cursor.execute("""
-            SELECT l.*, COUNT(p.id) as total_prestamos
-            FROM libros l
-            LEFT JOIN ejemplares e ON l.id = e.libro_id
-            LEFT JOIN prestamos p ON e.id = p.ejemplar_id
-            GROUP BY l.id
-            ORDER BY total_prestamos DESC
-            LIMIT 1
-        """)
-        row = cursor.fetchone()
-        return self._crear_libro_compatible(row) if row and row['total_prestamos'] > 0 else None
-
-    def get_libro_por_codigo(self, codigo: str) -> Optional[Libro]:
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT * FROM libros WHERE codigo = ?", (codigo,))
-        row = cursor.fetchone()
-        if row:
-            return self._crear_libro_con_datos_agregados(row)
-        return None
-
-    def get_libros_por_titulo(self, titulo: str) -> List[Libro]:
-        cursor = self.conn.cursor()
-        cursor.execute("""
-            SELECT DISTINCT l.*, 
-                   a.nombre as autor_nombre, a.apellido as autor_apellido,
-                   g.nombre as genero_nombre
-            FROM libros l
-            LEFT JOIN autores a ON l.autor_id = a.id
-            LEFT JOIN generos g ON l.genero_id = g.id
-            WHERE LOWER(l.titulo) LIKE LOWER(?)
-        """, (f"%{titulo}%",))
-        return [self._crear_libro_compatible(row) for row in cursor.fetchall()]
-        
     def get_libros_por_autor(self, autor_nombre: str) -> List[Libro]:
         cursor = self.conn.cursor()
         # Búsqueda mejorada: insensible a mayúsculas, busca en nombre completo
@@ -174,7 +115,7 @@ class DBManager:
                OR LOWER(a.apellido) LIKE LOWER(?)
                OR LOWER(a.nombre || ' ' || a.apellido) LIKE LOWER(?)
         """, (f"%{autor_nombre}%", f"%{autor_nombre}%", f"%{autor_nombre}%"))
-        return [self._crear_libro_compatible(row) for row in cursor.fetchall()]
+        return [self._hidratar_libro(row) for row in cursor.fetchall()]
 
     def buscar_libros_inteligente(self, termino: str) -> List[Libro]:
         """
@@ -212,41 +153,7 @@ class DBManager:
         """, (f"%{termino}%", f"%{termino}%", f"%{termino}%", f"%{termino}%", 
               f"%{termino}%", f"%{termino}%", f"%{termino}%",
               termino, termino, termino))
-        return [self._crear_libro_compatible(row) for row in cursor.fetchall()]
-
-    def _crear_libro_con_datos_agregados(self, row) -> Libro:
-        """
-        Función de ayuda que crea un objeto Libro y le añade la información
-        agregada (autor, ejemplares, etc.) para que la GUI la pueda usar.
-        """
-        if not row: return None
-        
-        row_dict = dict(row)
-        libro = Libro(
-            id=row_dict.get('id', 0),
-            codigo=row_dict['codigo'],
-            titulo=row_dict['titulo'],
-            isbn=row_dict.get('isbn'),
-            anio=row_dict['anio'],
-            editorial=row_dict.get('editorial'),
-            autor_id=row_dict.get('autor_id'),
-            genero_id=row_dict.get('genero_id'),
-            estanteria_id=row_dict.get('estanteria_id')
-        )
-
-        # Añadir información del autor
-        autor = self.get_autor(libro.autor_id)
-        libro.autor = autor 
-
-        # Añadir información de ejemplares
-        ejemplares = self.get_ejemplares_por_libro(libro.id)
-        libro.ejemplares = ejemplares 
-
-        # Añadir historial de préstamos si la consulta lo incluye
-        if 'total_prestamos' in row_dict:
-            libro._historial_prestamos_legacy = row_dict['total_prestamos']
-        
-        return libro
+        return [self._hidratar_libro(row) for row in cursor.fetchall()]
 
     def insertar_libro(self, libro: Libro) -> int:
         def _insert(cursor):
@@ -293,18 +200,13 @@ class DBManager:
         if row:
             # Verificar si es modelo anterior o nuevo
             # Usar la función de compatibilidad unificada
-            return self._crear_libro_compatible(row)
+            return self._hidratar_libro(row)
         return None
 
     def get_libros_por_titulo(self, titulo: str) -> List[Libro]:
         cursor = self.conn.cursor()
         cursor.execute("SELECT * FROM libros WHERE titulo LIKE ?", (f"%{titulo}%",))
-        return [self._crear_libro_compatible(row) for row in cursor.fetchall()]
-
-    def get_libros_por_autor(self, autor: str) -> List[Libro]:
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT * FROM libros WHERE autor LIKE ?", (f"%{autor}%",))
-        return [self._crear_libro_compatible(row) for row in cursor.fetchall()]
+        return [self._hidratar_libro(row) for row in cursor.fetchall()]
 
     def get_estanteria(self, id: int) -> Optional[Estanteria]:
         cursor = self.conn.cursor()
@@ -322,7 +224,7 @@ class DBManager:
     def get_libros_por_estanteria(self, estanteria_id: int) -> List[Libro]:
         cursor = self.conn.cursor()
         cursor.execute("SELECT * FROM libros WHERE estanteria_id = ?", (estanteria_id,))
-        return [self._crear_libro_compatible(row) for row in cursor.fetchall()]
+        return [self._hidratar_libro(row) for row in cursor.fetchall()]
 
     def get_libros_disponibles(self) -> List[Libro]:
         cursor = self.conn.cursor()
@@ -337,7 +239,7 @@ class DBManager:
             WHERE e.estado = 'disponible'
             GROUP BY l.id, a.id, g.id
         """)
-        return [self._crear_libro_compatible(row) for row in cursor.fetchall()]
+        return [self._hidratar_libro(row) for row in cursor.fetchall()]
 
     def get_libros_prestados(self) -> List[Libro]:
         cursor = self.conn.cursor()
@@ -352,7 +254,7 @@ class DBManager:
             WHERE e.estado = 'prestado'
             GROUP BY l.id, a.id, g.id
         """)
-        return [self._crear_libro_compatible(row) for row in cursor.fetchall()]
+        return [self._hidratar_libro(row) for row in cursor.fetchall()]
 
     def get_libro_mas_prestado(self) -> Optional[Libro]:
         cursor = self.conn.cursor()
@@ -371,24 +273,8 @@ class DBManager:
         """)
         row = cursor.fetchone()
         if row and row['total_prestamos'] > 0:
-            return self._crear_libro_compatible(row)
+            return self._hidratar_libro(row)
         return None
-
-    def mover_libro(self, libro_id: int, nueva_estanteria_id: int):
-        def _mover(cursor):
-            cursor.execute("SELECT COUNT(*) FROM libros WHERE estanteria_id = ?", (nueva_estanteria_id,))
-            count = cursor.fetchone()[0]
-            cursor.execute("SELECT capacidad FROM estanterias WHERE id = ?", (nueva_estanteria_id,))
-            row = cursor.fetchone()
-            if not row:
-                raise ValueError(f"Estantería {nueva_estanteria_id} no existe")
-            capacidad = row[0]
-            if count >= capacidad:
-                raise EstanteriaLlenaError(f"Estantería {nueva_estanteria_id} llena")
-            cursor.execute("UPDATE libros SET estanteria_id = ? WHERE id = ?", (nueva_estanteria_id, libro_id))
-            if cursor.rowcount == 0:
-                raise ValueError(f"No se encontró libro con id {libro_id}")
-        self.execute_transaction(_mover)
 
     def get_todas_las_estanterias(self) -> List[Estanteria]:
         cursor = self.conn.cursor()
@@ -398,9 +284,22 @@ class DBManager:
     def cerrar(self):
         self.conn.close()
 
-    # ============ FUNCIÓN DE COMPATIBILIDAD ============
-    def _crear_libro_compatible(self, row) -> 'Libro':
-        """Crea un objeto Libro compatible con el sistema anterior, poblando todas las relaciones."""
+    # ============ FUNCIÓN DE HIDRATACIÓN ============
+    def _hidratar_libro(self, row) -> 'Libro':
+        """Convierte una fila de base de datos en un objeto Libro completo.
+        
+        Hidrata el libro con todas sus relaciones:
+        - Autor (objeto Autor completo)
+        - Género (objeto Genero completo)
+        - Ejemplares (lista de objetos Ejemplar)
+        - Historial de préstamos (si está disponible en la consulta)
+        
+        Args:
+            row: Fila de sqlite3 (sqlite3.Row o dict) con datos del libro
+            
+        Returns:
+            Libro: Objeto Libro completamente hidratado con todas sus relaciones
+        """
         from logic.models import Libro
         
         # Convertir sqlite3.Row a dict si es necesario
@@ -409,76 +308,58 @@ class DBManager:
         else:
             row_dict = row
         
-        # Si row tiene los campos del modelo anterior (legacy)
-        if 'autor' in row_dict:
-            # Modelo anterior - crear libro básico con datos legacy
-            libro = Libro(
-                id=row_dict.get('id', 0),
-                codigo=row_dict['codigo'],
-                titulo=row_dict['titulo'],
-                anio=row_dict['anio'],
-                estanteria_id=row_dict['estanteria_id']
-            )
-            # Simular datos para compatibilidad
-            libro._disponibles_legacy = row_dict.get('cantidad_total', 0) - row_dict.get('cantidad_prestados', 0)
-            libro._cantidad_total_legacy = row_dict.get('cantidad_total', 0)
-            libro._cantidad_prestados_legacy = row_dict.get('cantidad_prestados', 0)
-            libro._historial_prestamos_legacy = row_dict.get('historial_prestamos', 0)
-            libro._autor_legacy = row_dict['autor']
-            return libro
-        else:
-            # Modelo nuevo - crear libro completo con todas las relaciones
-            libro = Libro(
-                id=row_dict['id'],
-                codigo=row_dict['codigo'],
-                titulo=row_dict['titulo'],
-                isbn=row_dict.get('isbn'),
-                anio=row_dict['anio'],
-                editorial=row_dict.get('editorial'),
-                numero_paginas=row_dict.get('numero_paginas'),
-                descripcion=row_dict.get('descripcion'),
-                autor_id=row_dict['autor_id'],
-                genero_id=row_dict.get('genero_id'),
-                estanteria_id=row_dict['estanteria_id'],
-                fecha_adquisicion=row_dict.get('fecha_adquisicion')
-            )
+        # Crear libro con todos sus campos
+        libro = Libro(
+            id=row_dict['id'],
+            codigo=row_dict['codigo'],
+            titulo=row_dict['titulo'],
+            isbn=row_dict.get('isbn'),
+            anio=row_dict['anio'],
+            editorial=row_dict.get('editorial'),
+            numero_paginas=row_dict.get('numero_paginas'),
+            descripcion=row_dict.get('descripcion'),
+            autor_id=row_dict['autor_id'],
+            genero_id=row_dict.get('genero_id'),
+            estanteria_id=row_dict['estanteria_id'],
+            fecha_adquisicion=row_dict.get('fecha_adquisicion')
+        )
+        
+        # Poblar datos relacionados
+        try:
+            # Poblar autor - usar datos de la consulta si están disponibles
+            if 'autor_nombre' in row_dict and 'autor_apellido' in row_dict:
+                from logic.models import Autor
+                libro.autor = Autor(
+                    id=libro.autor_id,
+                    nombre=row_dict['autor_nombre'],
+                    apellido=row_dict['autor_apellido']
+                )
+            elif libro.autor_id:
+                libro.autor = self.get_autor(libro.autor_id)
             
-            # ✅ POBLAR DATOS RELACIONADOS
-            try:
-                # Poblar autor - usar datos de la consulta si están disponibles
-                if 'autor_nombre' in row_dict and 'autor_apellido' in row_dict:
-                    from logic.models import Autor
-                    libro.autor = Autor(
-                        id=libro.autor_id,
-                        nombre=row_dict['autor_nombre'],
-                        apellido=row_dict['autor_apellido']
-                    )
-                elif libro.autor_id:
-                    libro.autor = self.get_autor(libro.autor_id)
-                
-                # Poblar género - usar datos de la consulta si están disponibles
-                if 'genero_nombre' in row_dict and row_dict['genero_nombre']:
-                    from logic.models import Genero
-                    libro.genero = Genero(
-                        id=libro.genero_id,
-                        nombre=row_dict['genero_nombre']
-                    )
-                elif libro.genero_id:
-                    libro.genero = self.get_genero(libro.genero_id)
-                
-                # Poblar ejemplares - siempre necesario para calcular disponibles/prestados
-                if libro.id:
-                    libro.ejemplares = self.get_ejemplares_por_libro(libro.id)
-                
-                # Poblar historial de préstamos si está en la consulta
-                if 'total_prestamos' in row_dict:
-                    libro.historial_prestamos = row_dict['total_prestamos']
-                    
-            except Exception as e:
-                print(f"⚠️ Error poblando datos relacionados para libro {libro.codigo}: {e}")
-                # Continúa con libro básico si hay error
+            # Poblar género - usar datos de la consulta si están disponibles
+            if 'genero_nombre' in row_dict and row_dict['genero_nombre']:
+                from logic.models import Genero
+                libro.genero = Genero(
+                    id=libro.genero_id,
+                    nombre=row_dict['genero_nombre']
+                )
+            elif libro.genero_id:
+                libro.genero = self.get_genero(libro.genero_id)
             
-            return libro
+            # Poblar ejemplares - siempre necesario para calcular disponibles/prestados
+            if libro.id:
+                libro.ejemplares = self.get_ejemplares_por_libro(libro.id)
+            
+            # Poblar historial de préstamos si está en la consulta
+            if 'total_prestamos' in row_dict:
+                libro.historial_prestamos = row_dict['total_prestamos']
+                
+        except Exception as e:
+            print(f"⚠️ Error poblando datos relacionados para libro {libro.codigo}: {e}")
+            # Continúa con libro básico si hay error
+        
+        return libro
 
     # ============ FUNCIONES PARA USUARIOS ============
     def insertar_usuario(self, nombre: str, email: Optional[str] = None, 
@@ -739,129 +620,6 @@ class DBManager:
                       (usuario_id,))
         return [self._crear_prestamo_from_row(row) for row in cursor.fetchall()]
 
-    # ============ FUNCIONES DE COMPATIBILIDAD (Sistema anterior) ============
-    def get_libros_disponibles_legacy(self) -> List['Libro']:
-        """Versión de compatibilidad que usa el modelo anterior."""
-        cursor = self.conn.cursor()
-        # Verificar si existen las columnas del modelo anterior
-        cursor.execute("PRAGMA table_info(libros)")
-        columns = [column[1] for column in cursor.fetchall()]
-        
-        if 'autor' in columns:
-            # Modelo anterior existe
-            cursor.execute("SELECT * FROM libros WHERE cantidad_total > cantidad_prestados")
-            return [self._crear_libro_compatible(row) for row in cursor.fetchall()]
-        else:
-            # Solo modelo nuevo - simular datos del anterior
-            cursor.execute("""
-                SELECT l.*, a.nombre || ' ' || a.apellido as autor_name,
-                       COUNT(e.id) as cantidad_total,
-                       COUNT(CASE WHEN e.estado = 'prestado' THEN 1 END) as cantidad_prestados,
-                       0 as historial_prestamos
-                FROM libros l 
-                LEFT JOIN autores a ON l.autor_id = a.id
-                LEFT JOIN ejemplares e ON l.id = e.libro_id
-                GROUP BY l.id
-                HAVING (cantidad_total - cantidad_prestados) > 0
-            """)
-            
-            from logic.models import Libro
-            libros = []
-            for row in cursor.fetchall():
-                libro = Libro(
-                    id=row['id'],
-                    codigo=row['codigo'],
-                    titulo=row['titulo'],
-                    anio=row['anio'],
-                    estanteria_id=row['estanteria_id']
-                )
-                # Datos de compatibilidad
-                libro._disponibles_legacy = row['cantidad_total'] - row['cantidad_prestados']
-                libro._cantidad_total_legacy = row['cantidad_total']
-                libro._cantidad_prestados_legacy = row['cantidad_prestados']
-                libro._historial_prestamos_legacy = row['historial_prestamos']
-                libro._autor_legacy = row['autor_name'] or "Autor Desconocido"
-                libros.append(libro)
-            return libros
-
-    def get_libros_prestados_legacy(self) -> List['Libro']:
-        """Versión de compatibilidad para libros prestados."""
-        cursor = self.conn.cursor()
-        cursor.execute("PRAGMA table_info(libros)")
-        columns = [column[1] for column in cursor.fetchall()]
-        
-        if 'autor' in columns:
-            cursor.execute("SELECT * FROM libros WHERE cantidad_prestados > 0")
-            return [self._crear_libro_compatible(row) for row in cursor.fetchall()]
-        else:
-            cursor.execute("""
-                SELECT l.*, a.nombre || ' ' || a.apellido as autor_name,
-                       COUNT(e.id) as cantidad_total,
-                       COUNT(CASE WHEN e.estado = 'prestado' THEN 1 END) as cantidad_prestados,
-                       0 as historial_prestamos
-                FROM libros l 
-                LEFT JOIN autores a ON l.autor_id = a.id
-                LEFT JOIN ejemplares e ON l.id = e.libro_id
-                GROUP BY l.id
-                HAVING cantidad_prestados > 0
-            """)
-            
-            from logic.models import Libro
-            libros = []
-            for row in cursor.fetchall():
-                libro = Libro(
-                    id=row['id'],
-                    codigo=row['codigo'],
-                    titulo=row['titulo'],
-                    anio=row['anio'],
-                    estanteria_id=row['estanteria_id']
-                )
-                libro._disponibles_legacy = row['cantidad_total'] - row['cantidad_prestados']
-                libro._cantidad_total_legacy = row['cantidad_total']
-                libro._cantidad_prestados_legacy = row['cantidad_prestados']
-                libro._historial_prestamos_legacy = row['historial_prestamos']
-                libro._autor_legacy = row['autor_name'] or "Autor Desconocido"
-                libros.append(libro)
-            return libros
-
-    def get_libro_mas_prestado_legacy(self) -> Optional['Libro']:
-        """Versión de compatibilidad para el libro más prestado."""
-        cursor = self.conn.cursor()
-        cursor.execute("PRAGMA table_info(libros)")
-        columns = [column[1] for column in cursor.fetchall()]
-        
-        if 'autor' in columns:
-            cursor.execute("SELECT * FROM libros ORDER BY historial_prestamos DESC LIMIT 1")
-            row = cursor.fetchone()
-            if row:
-                return self._crear_libro_compatible(row)
-        else:
-            # En el nuevo sistema, calculamos desde préstamos
-            cursor.execute("""
-                SELECT l.*, a.nombre || ' ' || a.apellido as autor_name,
-                       COUNT(p.id) as total_prestamos
-                FROM libros l 
-                LEFT JOIN autores a ON l.autor_id = a.id
-                LEFT JOIN ejemplares e ON l.id = e.libro_id
-                LEFT JOIN prestamos p ON e.id = p.ejemplar_id
-                GROUP BY l.id
-                ORDER BY total_prestamos DESC
-                LIMIT 1
-            """)
-            row = cursor.fetchone()
-            if row and row['total_prestamos'] > 0:
-                from logic.models import Libro
-                libro = Libro(
-                    id=row['id'],
-                    codigo=row['codigo'],
-                    titulo=row['titulo'],
-                    anio=row['anio'],
-                    estanteria_id=row['estanteria_id']
-                )
-                libro._historial_prestamos_legacy = row['total_prestamos']
-                libro._autor_legacy = row['autor_name'] or "Autor Desconocido"
-                return libro
-        return None
 
     def get_libro_por_id(self, libro_id: int) -> Optional[Libro]:
         """Obtiene un libro por su ID con datos relacionados."""
@@ -877,7 +635,7 @@ class DBManager:
         """, (libro_id,))
         row = cursor.fetchone()
         if row:
-            return self._crear_libro_compatible(row)
+            return self._hidratar_libro(row)
         return None
 
     def get_todos_los_libros(self) -> List[Libro]:
@@ -892,7 +650,7 @@ class DBManager:
             LEFT JOIN generos g ON l.genero_id = g.id
             ORDER BY l.titulo
         """)
-        return [self._crear_libro_compatible(row) for row in cursor.fetchall()]
+        return [self._hidratar_libro(row) for row in cursor.fetchall()]
 
     # función mover_libro para que chequee la cantidad de ejemplares
     def mover_libro(self, libro_id: int, nueva_estanteria_id: int):
@@ -1065,20 +823,3 @@ class DBManager:
         except Exception as e:
             print(f"Error modificando libro: {e}")
             return False
-
-    def _crear_libro_hidratado_DEPRECATED(self, row) -> Optional[Libro]:
-        """Función clave que crea un objeto Libro y carga su autor y ejemplares."""
-        if not row: return None
-        row_dict = dict(row)
-        
-        libro = Libro(id=row_dict['id'], codigo=row_dict['codigo'], titulo=row_dict['titulo'],
-                    anio=row_dict['anio'], estanteria_id=row_dict['estanteria_id'],
-                    autor_id=row_dict.get('autor_id'))
-        
-        libro.autor = self.get_autor(libro.autor_id)
-        libro.ejemplares = self.get_ejemplares_por_libro(libro.id)
-        
-        if 'total_prestamos' in row_dict:
-            libro.historial_prestamos = row_dict['total_prestamos']
-        
-        return libro
