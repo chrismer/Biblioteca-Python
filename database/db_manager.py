@@ -676,9 +676,18 @@ class DBManager:
             
             cursor.execute("SELECT COUNT(*) FROM ejemplares WHERE libro_id = ?", (libro_id,))
             ejemplares_a_mover = cursor.fetchone()[0]
+            
+            espacios_libres = capacidad - count
 
-            if (count + ejemplares_a_mover) > capacidad:
-                raise EstanteriaLlenaError(f"Estantería llena. Capacidad: {capacidad}, Libros actuales: {count}, No caben {ejemplares_a_mover} más.")
+            if ejemplares_a_mover > espacios_libres:
+                raise EstanteriaLlenaError(
+                    f"No hay suficiente espacio en la estantería '{nueva_estanteria_nombre}'.\n\n"
+                    f"📦 Ejemplares a mover: {ejemplares_a_mover}\n"
+                    f"📊 Capacidad total: {capacidad}\n"
+                    f"🔢 Ejemplares actuales: {count}\n"
+                    f"✅ Espacios libres: {espacios_libres}\n\n"
+                    f"Necesitas una estantería con al menos {ejemplares_a_mover} espacios libres."
+                )
             
             
             cursor.execute("UPDATE libros SET estanteria_id = ? WHERE id = ?", (nueva_estanteria_id, libro_id))
@@ -686,8 +695,6 @@ class DBManager:
                 raise ValueError(f"No se encontró libro con id {libro_id}")
 
 
-            print(f"Actualizando ubicaciones descriptivas para la estantería '{nueva_estanteria_nombre}'...")
-            
             # Obtenemos todos los ejemplares del libro que se movió
             cursor.execute("SELECT id, codigo_ejemplar FROM ejemplares WHERE libro_id = ? ORDER BY codigo_ejemplar", (libro_id,))
             ejemplares = cursor.fetchall()
@@ -700,7 +707,6 @@ class DBManager:
                 nueva_ubicacion = f"Estantería {nueva_estanteria_nombre} - Nivel {nivel} - Pos {posicion}"
                 
                 cursor.execute("UPDATE ejemplares SET ubicacion_fisica = ? WHERE id = ?", (nueva_ubicacion, ejemplar['id']))
-                print(f"  -> Actualizado {ejemplar['codigo_ejemplar']} a: {nueva_ubicacion}")
 
         self.execute_transaction(_mover)
     
@@ -721,8 +727,7 @@ class DBManager:
     def modificar_libro_completo(self, libro_id: int, cambios: dict) -> bool:
         """Modifica un libro completamente incluyendo autor, género y estantería."""
         try:
-            def transaction():
-                cursor = self.conn.cursor()
+            def transaction(cursor):
                 
                 # 1. Verificar/crear autor
                 autor_id = None
@@ -811,18 +816,26 @@ class DBManager:
                 
                 # 4. Si cambió la estantería, actualizar ubicaciones de ejemplares
                 if 'estanteria_id' in cambios:
-                    cursor.execute("""
-                        SELECT id FROM ejemplares WHERE libro_id = ?
-                    """, (libro_id,))
+                    # Obtener nombre de la nueva estantería
+                    cursor.execute("SELECT nombre FROM estanterias WHERE id = ?", (cambios['estanteria_id'],))
+                    estanteria_row = cursor.fetchone()
+                    nueva_estanteria_nombre = estanteria_row['nombre'] if estanteria_row else f"ID-{cambios['estanteria_id']}"
                     
+                    # Obtener ejemplares del libro
+                    cursor.execute("SELECT id, codigo_ejemplar FROM ejemplares WHERE libro_id = ? ORDER BY codigo_ejemplar", (libro_id,))
                     ejemplares = cursor.fetchall()
-                    for i, (ejemplar_id,) in enumerate(ejemplares, 1):
-                        nueva_ubicacion = f"Estantería {cambios['estanteria_id']}, Posición {i}"
+                    
+                    # Actualizar ubicación de cada ejemplar
+                    for i, ejemplar in enumerate(ejemplares, 1):
+                        nivel = ((i - 1) // 10) + 1
+                        posicion = ((i - 1) % 10) + 1
+                        nueva_ubicacion = f"Estantería {nueva_estanteria_nombre} - Nivel {nivel} - Pos {posicion}"
+                        
                         cursor.execute("""
                             UPDATE ejemplares 
                             SET ubicacion_fisica = ?
                             WHERE id = ?
-                        """, (nueva_ubicacion, ejemplar_id))
+                        """, (nueva_ubicacion, ejemplar['id']))
                 
                 return True
             

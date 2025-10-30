@@ -233,8 +233,6 @@ class ListFrame(ctk.CTkFrame):
                         row=row_num, column=2, padx=10, pady=2)
                     ctk.CTkLabel(scroll_frame, text=str(ejemplar.fecha_adquisicion)).grid(
                         row=row_num, column=3, padx=10, pady=2)
-                
-                print(f"✅ Interfaz de ejemplares creada: {len(ejemplares)} ejemplares mostrados")
             else:
                 # Mostrar información legacy
                 legacy_frame = ctk.CTkFrame(ejemplares_window, fg_color="orange")
@@ -308,8 +306,16 @@ class ListFrame(ctk.CTkFrame):
                         parent=self):
                 self.gestor.eliminar_libro_y_ejemplares(libro.id)
                 messagebox.showinfo("Éxito", "Libro eliminado correctamente.")
-                # Recargar la vista
-                libros_actualizados = self.gestor.buscar_libros("") # Vuelve a cargar todos los libros
-                self.master.switch_frame(self.__class__, titulo=self.master.current_frame_title, libros=libros_actualizados)
+                
+                # Recargar la vista según el título actual
+                if "Disponibles" in self.titulo:
+                    libros_actualizados = self.gestor.get_libros_disponibles()
+                elif "Prestados" in self.titulo:
+                    libros_actualizados = self.gestor.get_libros_prestados()
+                else:
+                    # Por defecto, buscar todos
+                    libros_actualizados = self.gestor.get_todos_los_libros()
+                
+                self.master.switch_frame(ListFrame, titulo=self.titulo, libros=libros_actualizados)
         except Exception as e:
             messagebox.showerror("Error", str(e))

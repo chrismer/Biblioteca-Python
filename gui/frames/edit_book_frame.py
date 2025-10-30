@@ -45,7 +45,7 @@ class EditBookFrame(ctk.CTkFrame):
         self.autor_nombre_var = ctk.StringVar()
         self.autor_apellido_var = ctk.StringVar()
         self.genero_var = ctk.StringVar()
-        self.estanteria_var = ctk.StringVar()
+        # estanteria_var ya no se usa - se muestra en label de solo lectura
 
     def create_interface(self):
         """Crea la interfaz de usuario."""
@@ -185,44 +185,10 @@ class EditBookFrame(ctk.CTkFrame):
         self.descripcion_text.pack(padx=20, pady=10, fill="x")
 
     def create_location_section(self):
-        """Crea la sección de ubicación."""
-        section_frame = ctk.CTkFrame(self.main_scroll)
-        section_frame.pack(fill="x", pady=10)
-        
-        ctk.CTkLabel(section_frame, text="📍 UBICACIÓN", 
-                    font=("Arial", 14, "bold")).pack(pady=10)
-
-        grid_frame = ctk.CTkFrame(section_frame, fg_color="transparent")
-        grid_frame.pack(fill="x", padx=20, pady=10)
-
-        # Estantería
-        ctk.CTkLabel(grid_frame, text="Estantería *").grid(row=0, column=0, sticky="w", padx=10, pady=5)
-        try:
-            estanterias = self.gestor.get_todas_estanterias()
-            estanteria_names = [f"{e.id} - {e.nombre}" for e in estanterias]
-            self.estanteria_combo = ctk.CTkComboBox(grid_frame, values=estanteria_names, width=300, variable=self.estanteria_var)
-            self.estanteria_combo.grid(row=0, column=1, padx=10, pady=5)
-        except:
-            self.estanteria_combo = ctk.CTkEntry(grid_frame, textvariable=self.estanteria_var, width=300)
-            self.estanteria_combo.grid(row=0, column=1, padx=10, pady=5)
-
-        # Información de ejemplares
-        info_ejemplares = ctk.CTkFrame(grid_frame, fg_color="#002333")
-        info_ejemplares.grid(row=1, column=0, columnspan=2, pady=10, sticky="ew")
-        
-        # Obtener cantidad de ejemplares de forma segura
-        try:
-            if hasattr(self.libro, 'ejemplares') and self.libro.ejemplares:
-                cantidad_ejemplares = len(self.libro.ejemplares)
-            else:
-                ejemplares = self.gestor.get_ejemplares_por_libro(self.libro.id if hasattr(self.libro, 'id') else None)
-                cantidad_ejemplares = len(ejemplares) if ejemplares else 0
-        except:
-            cantidad_ejemplares = 0
-            
-        ctk.CTkLabel(info_ejemplares, 
-                    text=f"📦 Este libro tiene {cantidad_ejemplares} ejemplares. Cambiar la estantería moverá TODOS los ejemplares.", 
-                    text_color="white").pack(pady=5)
+        """Crea la sección de ubicación (solo lectura)."""
+        # Ya no se muestra información de ubicación aquí
+        # Para mover libros, usar la opción 'Mover Libros' del menú principal
+        pass
 
     def create_action_buttons(self):
         """Crea los botones de acción."""
@@ -270,15 +236,7 @@ class EditBookFrame(ctk.CTkFrame):
             if self.libro.genero:
                 self.genero_var.set(self.libro.genero.nombre)
             
-            # Estantería
-            estanteria_actual = f"{self.libro.estanteria_id} - "
-            try:
-                estanteria_obj = self.gestor.get_estanteria(self.libro.estanteria_id)
-                if estanteria_obj:
-                    estanteria_actual += estanteria_obj.nombre
-                    self.estanteria_var.set(estanteria_actual)
-            except:
-                pass
+            # Estantería - ya no se muestra en este frame
 
         except Exception as e:
             messagebox.showerror("Error", f"Error al cargar datos del libro: {str(e)}")
@@ -303,15 +261,7 @@ class EditBookFrame(ctk.CTkFrame):
                 messagebox.showerror("Error", "Año debe ser un número válido entre 1000 y 2100")
                 return
 
-            # Obtener estantería ID
-            estanteria_str = self.estanteria_var.get()
-            try:
-                estanteria_id = int(estanteria_str.split(" - ")[0])
-            except:
-                messagebox.showerror("Error", "Seleccione una estantería válida")
-                return
-
-            # Preparar datos para actualización
+            # Preparar datos para actualización (SIN estantería - usar "Mover Libros" para eso)
             cambios = {
                 'titulo': self.titulo_var.get().strip(),
                 'isbn': self.isbn_var.get().strip() or None,
@@ -321,14 +271,12 @@ class EditBookFrame(ctk.CTkFrame):
                 'descripcion': self.descripcion_text.get("1.0", "end").strip() or None,
                 'autor_nombre': self.autor_nombre_var.get().strip(),
                 'autor_apellido': self.autor_apellido_var.get().strip(),
-                'genero': self.genero_var.get().strip() if self.genero_var.get().strip() else None,
-                'estanteria_id': estanteria_id
+                'genero': self.genero_var.get().strip() if self.genero_var.get().strip() else None
             }
 
             # Confirmar cambios
             if confirmar("Confirmar Cambios", 
-                        f"¿Está seguro de guardar los cambios en '{self.libro.titulo}'?\n\n"
-                        f"Esto actualizará la información del libro y todos sus ejemplares.", 
+                        f"¿Está seguro de guardar los cambios en '{self.libro.titulo}'?", 
                         parent=self):
                 
                 # Aquí llamaríamos a la función de actualización

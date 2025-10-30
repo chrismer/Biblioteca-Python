@@ -21,7 +21,7 @@ def confirmar(titulo: str, mensaje: str, parent=None) -> bool:
     # Crear ventana personalizada
     dialog = ctk.CTkToplevel(parent)
     dialog.title(titulo)
-    dialog.geometry("500x280")
+    dialog.geometry("520x320")
     dialog.resizable(False, False)
     dialog.transient(parent)
     dialog.grab_set()
@@ -41,9 +41,9 @@ def confirmar(titulo: str, mensaje: str, parent=None) -> bool:
     
     # Centrar la ventana
     dialog.update_idletasks()
-    x = (dialog.winfo_screenwidth() // 2) - (500 // 2)
-    y = (dialog.winfo_screenheight() // 2) - (280 // 2)
-    dialog.geometry(f"500x280+{x}+{y}")
+    x = (dialog.winfo_screenwidth() // 2) - (520 // 2)
+    y = (dialog.winfo_screenheight() // 2) - (320 // 2)
+    dialog.geometry(f"520x320+{x}+{y}")
     
     # Variable para el resultado
     result = tk.BooleanVar()
@@ -60,27 +60,31 @@ def confirmar(titulo: str, mensaje: str, parent=None) -> bool:
     
     # Frame principal
     main_frame = ctk.CTkFrame(dialog, fg_color=colors['white'])
-    main_frame.pack(fill="both", expand=True, padx=25, pady=25)
+    main_frame.pack(fill="both", expand=True, padx=20, pady=20)
     
     # Icono y título - Header más visible
     header_frame = ctk.CTkFrame(main_frame, fg_color="#1E40AF") 
-    header_frame.pack(fill="x", pady=(0, 20))
+    header_frame.pack(fill="x", pady=(0, 15))
     
     ctk.CTkLabel(header_frame, 
                 text=f"❓ {titulo}", 
                 font=("Segoe UI", 18, "bold"),
-                text_color="white").pack(pady=15)
+                text_color="white").pack(pady=12)
     
     # Mensaje con más espacio
     ctk.CTkLabel(main_frame, 
                 text=mensaje, 
                 font=("Segoe UI", 13),
-                wraplength=420,
-                justify="center").pack(pady=20)
+                wraplength=450,
+                justify="center").pack(pady=15)
     
     # Botones con más espacio
     button_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
-    button_frame.pack(pady=20)
+    button_frame.pack(pady=15)
+    
+    # Configurar grid para centrar
+    button_frame.grid_columnconfigure(0, weight=1)
+    button_frame.grid_columnconfigure(1, weight=1)
     
     def on_si():
         result.set(True)
@@ -90,29 +94,31 @@ def confirmar(titulo: str, mensaje: str, parent=None) -> bool:
         result.set(False)
         dialog.destroy()
     
-    # Botón Sí 
-    ctk.CTkButton(button_frame,
-                 text="✅ Sí",
-                 width=120,
-                 height=45, 
-                 fg_color="#10B981",
-                 hover_color="#059669",
-                 text_color="white",
-                 font=("Segoe UI", 14, "bold"), 
-                 corner_radius=10,
-                 command=on_si).pack(side="left", padx=15) 
+    # Botón Sí - usando grid en lugar de pack
+    btn_si = ctk.CTkButton(button_frame,
+                           text="✅ Sí",
+                           width=140,
+                           height=45, 
+                           fg_color="#10B981",
+                           hover_color="#059669",
+                           text_color="white",
+                           font=("Segoe UI", 14, "bold"), 
+                           corner_radius=10,
+                           command=on_si)
+    btn_si.grid(row=0, column=0, padx=10, pady=5)
     
-    # Botón No 
-    ctk.CTkButton(button_frame,
-                 text="❌ No",
-                 width=120,  
-                 height=45,  
-                 fg_color="#EF4444",  
-                 hover_color="#DC2626",  
-                 text_color="white",
-                 font=("Segoe UI", 14, "bold"),  
-                 corner_radius=10,
-                 command=on_no).pack(side="left", padx=15) 
+    # Botón No - usando grid en lugar de pack
+    btn_no = ctk.CTkButton(button_frame,
+                           text="❌ No",
+                           width=140,  
+                           height=45,  
+                           fg_color="#EF4444",  
+                           hover_color="#DC2626",  
+                           text_color="white",
+                           font=("Segoe UI", 14, "bold"),  
+                           corner_radius=10,
+                           command=on_no)
+    btn_no.grid(row=0, column=1, padx=10, pady=5) 
     
     # Manejar cierre de ventana
     dialog.protocol("WM_DELETE_WINDOW", on_no)

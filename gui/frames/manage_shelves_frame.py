@@ -214,7 +214,7 @@ class ManageShelvesFrame(BaseFrame):
         # Crear ventana de edición
         edit_window = ctk.CTkToplevel(self)
         edit_window.title(f"Editar Estantería - {estanteria.nombre}")
-        edit_window.geometry("400x300")
+        edit_window.geometry("520x500")
         edit_window.transient(self)
         edit_window.grab_set()
         
@@ -234,50 +234,55 @@ class ManageShelvesFrame(BaseFrame):
         
         # Centrar ventana
         edit_window.update_idletasks()
-        x = (edit_window.winfo_screenwidth() // 2) - (400 // 2)
-        y = (edit_window.winfo_screenheight() // 2) - (300 // 2)
-        edit_window.geometry(f"400x300+{x}+{y}")
+        x = (edit_window.winfo_screenwidth() // 2) - (520 // 2)
+        y = (edit_window.winfo_screenheight() // 2) - (500 // 2)
+        edit_window.geometry(f"520x500+{x}+{y}")
         
-        # Contenido
-        main_frame = ctk.CTkFrame(edit_window, fg_color=self.colors['white'])
-        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        # Frame principal con scroll
+        main_scroll = ctk.CTkScrollableFrame(edit_window, fg_color=self.colors['white'])
+        main_scroll.pack(fill="both", expand=True, padx=20, pady=20)
         
         # Título
-        ctk.CTkLabel(main_frame, text=f"✏️ Editar Estantería", 
-                    font=("Segoe UI", 18, "bold"),
-                    text_color=self.colors['primary']).pack(pady=(0, 20))
+        title_frame = ctk.CTkFrame(main_scroll, fg_color=self.colors['primary'], corner_radius=10)
+        title_frame.pack(fill="x", pady=(0, 20))
+        ctk.CTkLabel(title_frame, text=f"✏️ Editar Estantería", 
+                    font=("Segoe UI", 20, "bold"),
+                    text_color="white").pack(pady=15)
         
         # Formulario
-        form_frame = ctk.CTkFrame(main_frame, fg_color=self.colors['light'])
-        form_frame.pack(fill="x", padx=20, pady=10)
+        form_frame = ctk.CTkFrame(main_scroll, fg_color=self.colors['light'], corner_radius=10)
+        form_frame.pack(fill="x", padx=10, pady=10)
         
         # Nombre
-        ctk.CTkLabel(form_frame, text="Nombre:", font=("Segoe UI", 12, "bold")).pack(anchor="w", padx=20, pady=(15, 5))
-        nombre_entry = ctk.CTkEntry(form_frame, width=300)
-        nombre_entry.pack(padx=20, pady=(0, 10))
+        ctk.CTkLabel(form_frame, text="Nombre:", font=("Segoe UI", 13, "bold")).pack(anchor="w", padx=20, pady=(20, 5))
+        nombre_entry = ctk.CTkEntry(form_frame, width=420, height=35, font=("Segoe UI", 12))
+        nombre_entry.pack(padx=20, pady=(0, 15))
         nombre_entry.insert(0, estanteria.nombre)
         
         # Capacidad
-        ctk.CTkLabel(form_frame, text="Capacidad:", font=("Segoe UI", 12, "bold")).pack(anchor="w", padx=20, pady=(10, 5))
-        capacidad_entry = ctk.CTkEntry(form_frame, width=150)
-        capacidad_entry.pack(padx=20, pady=(0, 15))
+        ctk.CTkLabel(form_frame, text="Capacidad:", font=("Segoe UI", 13, "bold")).pack(anchor="w", padx=20, pady=(10, 5))
+        capacidad_entry = ctk.CTkEntry(form_frame, width=200, height=35, font=("Segoe UI", 12))
+        capacidad_entry.pack(anchor="w", padx=20, pady=(0, 15))
         capacidad_entry.insert(0, str(estanteria.capacidad))
         
         # Información actual
         try:
             ocupados = self.gestor.get_count_libros_en_estanteria(estanteria.id)
-            info_text = f"📊 Actualmente tiene {ocupados} ejemplares ocupados"
+            info_text = f"📊 Actualmente: {ocupados} ejemplares ocupados"
             if ocupados > 0:
-                info_text += f"\n⚠️ La nueva capacidad debe ser mayor o igual a {ocupados}"
+                info_text += f"\n⚠️ Capacidad mínima: {ocupados} (no puede ser menor)"
         except:
             info_text = "📊 No se pudo obtener información de ocupación"
         
-        info_frame = ctk.CTkFrame(main_frame, fg_color=self.colors['warning'])
-        info_frame.pack(fill="x", padx=20, pady=10)
-        ctk.CTkLabel(info_frame, text=info_text, text_color="white").pack(pady=10)
+        info_frame = ctk.CTkFrame(form_frame, fg_color="#FFF3CD", corner_radius=8)
+        info_frame.pack(fill="x", padx=20, pady=(10, 20))
+        ctk.CTkLabel(info_frame, text=info_text, 
+                    text_color="#856404",
+                    font=("Segoe UI", 11),
+                    justify="left").pack(pady=12, padx=12)
         
-        # Botones
-        buttons_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        # Botones (más grandes y visibles)
+        buttons_frame = ctk.CTkFrame(main_scroll, fg_color="transparent")
         buttons_frame.pack(pady=20)
         
         def guardar_cambios():
@@ -305,13 +310,21 @@ class ManageShelvesFrame(BaseFrame):
             except Exception as e:
                 messagebox.showerror("Error", str(e))
         
-        ctk.CTkButton(buttons_frame, text="💾 Guardar", 
+        ctk.CTkButton(buttons_frame, text="💾 Guardar Cambios", 
                      command=guardar_cambios,
-                     fg_color=self.colors['success'], hover_color="#1e5f4e").pack(side="left", padx=10)
+                     fg_color=self.colors['success'], 
+                     hover_color="#1e5f4e",
+                     width=180,
+                     height=45,
+                     font=("Segoe UI", 13, "bold")).pack(side="left", padx=10)
         
         ctk.CTkButton(buttons_frame, text="❌ Cancelar", 
                      command=edit_window.destroy,
-                     fg_color=self.colors['danger'], hover_color="#c12e2a").pack(side="left", padx=10)
+                     fg_color=self.colors['danger'], 
+                     hover_color="#c12e2a",
+                     width=140,
+                     height=45,
+                     font=("Segoe UI", 13, "bold")).pack(side="left", padx=10)
 
     def eliminar_estanteria(self, estanteria: Estanteria):
         """Elimina una estantería."""

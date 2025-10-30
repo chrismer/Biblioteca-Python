@@ -18,6 +18,8 @@ class GestorBiblioteca:
             raise ValueError("Nombre debe ser un string no vacío")
         if not isinstance(capacidad, int) or capacidad < 1:
             raise ValueError("Capacidad debe ser un entero positivo")
+        if capacidad > 150:
+            raise ValueError("Capacidad máxima permitida: 150 ejemplares por estantería")
         
         # Validar que no exista otra estantería con el mismo nombre
         estanterias_existentes = self.db.get_todas_las_estanterias()
@@ -43,6 +45,8 @@ class GestorBiblioteca:
         if capacidad is not None:
             if not isinstance(capacidad, int) or capacidad < self.db.get_count_libros_en_estanteria(id):
                 raise ValueError("Capacidad debe ser >= libros asignados")
+            if capacidad > 150:
+                raise ValueError("Capacidad máxima permitida: 150 ejemplares por estantería")
             estanteria.capacidad = capacidad
         def _update(cursor):
             cursor.execute("UPDATE estanterias SET nombre = ?, capacidad = ? WHERE id = ?", (estanteria.nombre, estanteria.capacidad, id))
@@ -398,4 +402,4 @@ class GestorBiblioteca:
 
     def modificar_libro_completo(self, libro_id: int, datos_nuevos: dict) -> None:
         """Modifica los datos de un libro."""
-        self.db.actualizar_libro_completo(libro_id, datos_nuevos)
+        self.db.modificar_libro_completo(libro_id, datos_nuevos)
