@@ -49,12 +49,8 @@ class BaseFrame(ctk.CTkFrame):
                 self.bg_label = ctk.CTkLabel(self, image=bg_ctk_image, text="")
                 self.bg_label.place(x=0, y=0, relwidth=1, relheight=1)
                 
-                print("✅ Fondo de imagen aplicado correctamente")
-            else:
-                print("ℹ️ Imagen de fondo no encontrada")
-                
         except Exception as e:
-            print(f"Error al cargar fondo: {e}")
+            pass  # Continuar sin fondo si hay error
     
     def setup_content_area(self):
         """Configura el área de contenido con scroll."""

@@ -59,14 +59,9 @@ class App(ctk.CTk):
                 # Para macOS/Linux - usar PhotoImage
                 icon_image = tk.PhotoImage(file=icon_path)
                 self.iconphoto(True, icon_image)
-                print("✅ Icono personalizado aplicado")
-            else:
-                print("⚠️ No se encontró el icono personalizado")
                 
         except Exception as e:
-            print(f"⚠️ Error al cargar icono personalizado: {e}")
-            # Continuar sin icono personalizado
-            pass
+            pass  # Continuar sin icono personalizado
 
     def destroy(self):
         self.gestor.cerrar()

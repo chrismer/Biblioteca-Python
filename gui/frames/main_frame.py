@@ -131,10 +131,9 @@ class MainFrame(ctk.CTkFrame):
                 # Label con imagen de fondo (sin overlay azul)
                 bg_label = ctk.CTkLabel(hero_frame, image=bg_ctk_image, text="", corner_radius=20)
                 bg_label.place(x=0.5, y=0, anchor="nw")
-                print("✅ Imagen de fondo cargada correctamente")
                 
         except Exception as e:
-            print(f"ℹ️ Imagen de fondo no encontrada: {e}")
+            pass  # Continuar con fallback si no hay imagen
             # Fallback: mostrar solo un mensaje simple
             fallback_frame = ctk.CTkFrame(hero_frame, fg_color=self.colors['light'], corner_radius=20)
             fallback_frame.pack(fill="both", expand=True)
@@ -166,11 +165,9 @@ class MainFrame(ctk.CTkFrame):
                 elif hasattr(self.master.current_frame, 'buscar_libros'):
                     # Fallback: ejecutar búsqueda automáticamente
                     self.master.current_frame.buscar_libros()
-                    
-                print(f"🔍 Búsqueda desde header: '{termino}' - {len(libros_encontrados)} resultados")
                 
             except Exception as e:
-                print(f"Error en búsqueda desde header: {e}")
+                pass  # Fallback silencioso
                 # Fallback: ir a la pantalla de búsqueda normal
                 self.master.switch_frame(SearchBookFrame)
         else:
