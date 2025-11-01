@@ -101,22 +101,6 @@ class DBManager:
         )''')
         self.conn.commit()
 
-    def get_libros_por_autor(self, autor_nombre: str) -> List[Libro]:
-        cursor = self.conn.cursor()
-        # Búsqueda mejorada: insensible a mayúsculas, busca en nombre completo
-        cursor.execute("""
-            SELECT DISTINCT l.*, 
-                   a.nombre as autor_nombre, a.apellido as autor_apellido,
-                   g.nombre as genero_nombre
-            FROM libros l
-            JOIN autores a ON l.autor_id = a.id
-            LEFT JOIN generos g ON l.genero_id = g.id
-            WHERE LOWER(a.nombre) LIKE LOWER(?) 
-               OR LOWER(a.apellido) LIKE LOWER(?)
-               OR LOWER(a.nombre || ' ' || a.apellido) LIKE LOWER(?)
-        """, (f"%{autor_nombre}%", f"%{autor_nombre}%", f"%{autor_nombre}%"))
-        return [self._hidratar_libro(row) for row in cursor.fetchall()]
-
     def buscar_libros_inteligente(self, termino: str) -> List[Libro]:
         """
         Búsqueda inteligente que busca en múltiples campos simultáneamente.
@@ -169,20 +153,6 @@ class DBManager:
             return cursor.lastrowid
         return self.execute_transaction(_insert)
 
-    def actualizar_libro(self, libro: Libro):
-        def _update(cursor):
-            cursor.execute('''UPDATE libros SET codigo = ?, titulo = ?, autor = ?, anio = ?, cantidad_total = ?, cantidad_prestados = ?, historial_prestamos = ?, estanteria_id = ?
-                            WHERE codigo = ?''',
-                          (libro.codigo, libro.titulo, libro.autor, libro.anio, libro.cantidad_total, libro.cantidad_prestados, libro.historial_prestamos, libro.estanteria_id, libro.codigo))
-        self.execute_transaction(_update)
-
-    def eliminar_libro(self, codigo: str):
-        def _delete(cursor):
-            cursor.execute("DELETE FROM libros WHERE codigo = ?", (codigo,))
-            if cursor.rowcount == 0:
-                raise ValueError(f"No se encontró libro con código {codigo}")
-        self.execute_transaction(_delete)
-
     def insertar_estanteria(self, nombre: str, capacidad: int) -> int:
         """Inserta una nueva estantería en la base de datos."""
         def _insert(cursor):
@@ -210,11 +180,6 @@ class DBManager:
             # Usar la función de compatibilidad unificada
             return self._hidratar_libro(row)
         return None
-
-    def get_libros_por_titulo(self, titulo: str) -> List[Libro]:
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT * FROM libros WHERE titulo LIKE ?", (f"%{titulo}%",))
-        return [self._hidratar_libro(row) for row in cursor.fetchall()]
 
     def get_estanteria(self, id: int) -> Optional[Estanteria]:
         cursor = self.conn.cursor()
@@ -716,13 +681,6 @@ class DBManager:
             if cursor.rowcount == 0:
                 raise ValueError(f"No se encontró libro con id {libro_id}")
         self.execute_transaction(_delete)
-
-    def actualizar_libro_completo(self, libro_id: int, datos: dict):
-        # versión simplificada para el título
-        def _update(cursor):
-            if 'titulo' in datos:
-                cursor.execute("UPDATE libros SET titulo = ? WHERE id = ?", (datos['titulo'], libro_id))
-        self.execute_transaction(_update)
     
     def modificar_libro_completo(self, libro_id: int, cambios: dict) -> bool:
         """Modifica un libro completamente incluyendo autor, género y estantería."""

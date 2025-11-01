@@ -114,10 +114,12 @@ class GestorBiblioteca:
         return self.db.get_libro_por_codigo(codigo)
 
     def buscar_libros_por_titulo(self, titulo: str) -> List[Libro]:
-        return self.db.get_libros_por_titulo(titulo)
+        """Búsqueda específica por título (mantiene compatibilidad)."""
+        return self.db.buscar_libros_inteligente(titulo)
 
     def buscar_libros_por_autor(self, autor: str) -> List[Libro]:
-        return self.db.get_libros_por_autor(autor)
+        """Búsqueda específica por autor (mantiene compatibilidad)."""
+        return self.db.buscar_libros_inteligente(autor)
 
     def get_libros_disponibles(self) -> List[Libro]:
         return self.db.get_libros_disponibles()
