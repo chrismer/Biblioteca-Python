@@ -503,6 +503,14 @@ class DBManager:
                         row['estado'], row['observaciones'], row['fecha_adquisicion'], 
                         row['ubicacion_fisica']) for row in cursor.fetchall()]
 
+    def eliminar_ejemplar_por_id(self, ejemplar_id: int):
+        """Elimina un ejemplar específico por su ID."""
+        def _delete(cursor):
+            cursor.execute("DELETE FROM ejemplares WHERE id = ?", (ejemplar_id,))
+            if cursor.rowcount == 0:
+                raise ValueError(f"No se encontró ejemplar con id {ejemplar_id}")
+        self.execute_transaction(_delete)
+
     # ============ FUNCIONES PARA PRÉSTAMOS ============
     def insertar_prestamo(self, ejemplar_id: int, usuario_id: int, 
                          dias_prestamo: int = 15, observaciones: Optional[str] = None) -> int:

@@ -188,6 +188,36 @@ class GestorBiblioteca:
     def get_ejemplares_disponibles(self) -> List[Ejemplar]:
         return self.db.get_ejemplares_disponibles()
 
+    def agregar_nuevo_ejemplar(self, libro_id: int):
+        """Añade un nuevo ejemplar a un libro existente."""
+        libro = self.db.get_libro_por_id(libro_id)
+        if not libro:
+            raise ValueError("El libro no existe.")
+
+        # Lógica para generar el nuevo código de ejemplar
+        ejemplares = self.get_ejemplares_por_libro(libro_id)
+        nuevo_numero = len(ejemplares) + 1
+        nuevo_codigo = f"{libro.codigo}-{nuevo_numero:03d}"
+
+        # Lógica para la ubicación
+        estanteria = self.db.get_estanteria(libro.estanteria_id)
+        ejemplares_en_estanteria = self.get_count_ejemplares_en_estanteria(libro.estanteria_id)
+        nivel = ((ejemplares_en_estanteria) // 10) + 1
+        posicion = ((ejemplares_en_estanteria) % 10) + 1
+        ubicacion = f"Estantería {estanteria.nombre} - Nivel {nivel} - Pos {posicion}"
+
+        self.db.insertar_ejemplar(libro_id, nuevo_codigo, ubicacion_fisica=ubicacion)
+
+    def eliminar_ejemplar(self, ejemplar_id: int):
+        """Elimina un ejemplar, con validación de estado."""
+        ejemplar = self.db.get_ejemplar(ejemplar_id)
+        if not ejemplar:
+            raise ValueError("El ejemplar no existe.")
+        if ejemplar.estado == 'prestado':
+            raise ValueError("No se puede eliminar un ejemplar que está actualmente prestado.")
+
+        self.db.eliminar_ejemplar_por_id(ejemplar_id)
+
     # ============ SISTEMA DE PRÉSTAMOS NUEVO ============
     def prestar_ejemplar(self, ejemplar_id: int, usuario_id: int, 
                         dias_prestamo: int = 15, observaciones: Optional[str] = None) -> int:
