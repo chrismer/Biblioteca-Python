@@ -1,7 +1,6 @@
 import customtkinter as ctk
 from tkinter import messagebox
 from typing import TYPE_CHECKING, List
-from gui.utils.helpers import borrar_widgets
 from .base_frame import BaseFrame
 from logic.models import Libro, Ejemplar
 from gui.utils.dialogs import confirmar
@@ -50,13 +49,15 @@ class SearchBookFrame(BaseFrame):
         """Inicia el proceso de búsqueda y actualiza la UI."""
         termino = self.entry_buscar.get().strip()
         if not termino:
-            borrar_widgets(self.results_panel)
+            for widget in self.results_panel.winfo_children():
+                widget.destroy()
             ctk.CTkLabel(self.results_panel, text="Por favor, ingrese un término de búsqueda.", 
                         font=("Segoe UI", 14), text_color=self.colors['warning']).pack(pady=40)
             return
 
         # Mostrar indicador de búsqueda
-        borrar_widgets(self.results_panel)
+        for widget in self.results_panel.winfo_children():
+            widget.destroy()
         ctk.CTkLabel(self.results_panel, text=f"🔍 Buscando '{termino}'...", 
                     font=("Segoe UI", 14), text_color=self.colors['secondary']).pack(pady=40)
         
@@ -73,7 +74,8 @@ class SearchBookFrame(BaseFrame):
 
     def mostrar_resultados(self, resultados: List[Libro], termino: str, error: str = None):
         """Muestra los resultados de la búsqueda o un mensaje de error/no encontrado."""
-        borrar_widgets(self.results_panel)
+        for widget in self.results_panel.winfo_children():
+            widget.destroy()
 
         # Manejo de errores
         if error:
