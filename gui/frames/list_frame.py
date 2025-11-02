@@ -157,12 +157,12 @@ class ListFrame(ctk.CTkFrame):
         top_actions_frame = ctk.CTkFrame(ejemplares_window, fg_color="transparent")
         top_actions_frame.pack(pady=5, padx=20, fill="x")
 
-        ctk.CTkButton(top_actions_frame, text="➕ Añadir Nuevo Ejemplar", fg_color="green",
-                     command=lambda: self.agregar_ejemplar_action(libro, ejemplares_window)).pack(side="left")
-
         # Frame para la lista de ejemplares
         scroll_frame = ctk.CTkScrollableFrame(ejemplares_window)
         scroll_frame.pack(pady=10, padx=10, fill="both", expand=True)
+
+        ctk.CTkButton(top_actions_frame, text="➕ Añadir Nuevo Ejemplar", fg_color="green",
+                     command=lambda: self.agregar_ejemplar_action(libro, ejemplares_window, scroll_frame)).pack(side="left")
 
         self.redraw_ejemplares_list(scroll_frame, libro)
 
@@ -196,12 +196,12 @@ class ListFrame(ctk.CTkFrame):
             else:
                 ctk.CTkButton(actions_frame, text="🚫", fg_color="gray", width=30, state="disabled").pack()
 
-    def agregar_ejemplar_action(self, libro, window):
+    def agregar_ejemplar_action(self, libro, window, scroll_frame):
         try:
             if confirmar("Confirmar", f"¿Desea añadir un nuevo ejemplar para '{libro.titulo}'?", parent=window):
                 self.gestor.agregar_nuevo_ejemplar(libro.id)
                 messagebox.showinfo("Éxito", "Nuevo ejemplar añadido correctamente.", parent=window)
-                self.redraw_ejemplares_list(window.winfo_children()[1], libro) # Redibujar la lista
+                self.redraw_ejemplares_list(scroll_frame, libro) # Redibujar la lista
         except Exception as e:
             messagebox.showerror("Error", str(e), parent=window)
 
