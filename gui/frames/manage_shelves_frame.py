@@ -133,7 +133,7 @@ class ManageShelvesFrame(BaseFrame):
         """Crea una fila para una estantería."""
         # Obtener estadísticas
         try:
-            ocupados = self.gestor.get_count_libros_en_estanteria(estanteria.id)
+            ocupados = self.gestor.get_count_ejemplares_en_estanteria(estanteria.id)
             libres = estanteria.capacidad - ocupados
         except:
             ocupados = 0
@@ -267,7 +267,7 @@ class ManageShelvesFrame(BaseFrame):
         
         # Información actual
         try:
-            ocupados = self.gestor.get_count_libros_en_estanteria(estanteria.id)
+            ocupados = self.gestor.get_count_ejemplares_en_estanteria(estanteria.id)
             info_text = f"📊 Actualmente: {ocupados} ejemplares ocupados"
             if ocupados > 0:
                 info_text += f"\n⚠️ Capacidad mínima: {ocupados} (no puede ser menor)"
@@ -330,7 +330,7 @@ class ManageShelvesFrame(BaseFrame):
         """Elimina una estantería."""
         try:
             # Verificar que esté vacía
-            ocupados = self.gestor.get_count_libros_en_estanteria(estanteria.id)
+            ocupados = self.gestor.get_count_ejemplares_en_estanteria(estanteria.id)
             if ocupados > 0:
                 messagebox.showerror("Error", 
                                    f"No se puede eliminar la estantería '{estanteria.nombre}' "

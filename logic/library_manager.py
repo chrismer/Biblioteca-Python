@@ -43,7 +43,7 @@ class GestorBiblioteca:
                 raise ValueError("Nombre debe ser un string no vacío")
             estanteria.nombre = nombre
         if capacidad is not None:
-            if not isinstance(capacidad, int) or capacidad < self.db.get_count_libros_en_estanteria(id):
+            if not isinstance(capacidad, int) or capacidad < self.get_count_ejemplares_en_estanteria(id):
                 raise ValueError("Capacidad debe ser >= libros asignados")
             if capacidad > 150:
                 raise ValueError("Capacidad máxima permitida: 150 ejemplares por estantería")
@@ -59,11 +59,9 @@ class GestorBiblioteca:
         """Obtiene todas las estanterías."""
         return self.db.get_todas_las_estanterias()
     
-    def get_count_libros_en_estanteria(self, estanteria_id: int) -> int:
+    def get_count_ejemplares_en_estanteria(self, estanteria_id: int) -> int:
         """Obtiene la cantidad de ejemplares en una estantería."""
-        cursor = self.db.conn.cursor()
-        cursor.execute("SELECT COUNT(e.id) FROM ejemplares e JOIN libros l ON e.libro_id = l.id WHERE l.estanteria_id = ?", (estanteria_id,))
-        return cursor.fetchone()[0]
+        return self.db.get_count_ejemplares_en_estanteria(estanteria_id)
 
     # ============ ATAJOS DE PRÉSTAMOS (Para GUI) ============
     def prestar_libro(self, codigo: str) -> None:
@@ -226,6 +224,23 @@ class GestorBiblioteca:
         return self.db.get_prestamos_por_usuario(usuario_id)
 
     # ============ FUNCIONES DE COMPATIBILIDAD  ============
+    def _find_or_create_autor(self, nombre: str, apellido: str) -> Autor:
+        """Busca un autor por nombre y apellido, o lo crea si no existe."""
+        autor = self.db.find_autor_by_name(nombre, apellido)
+        if not autor:
+            autor_id = self.agregar_autor(nombre, apellido)
+            autor = self.get_autor(autor_id)
+        return autor
+
+    def _find_or_create_genero(self, nombre: str) -> Optional[int]:
+        """Busca un género por nombre, o lo crea si no existe."""
+        if not nombre:
+            return None
+        genero = self.db.find_genero_by_name(nombre)
+        if not genero:
+            return self.agregar_genero(nombre)
+        return genero.id
+
     def agregar_libro_simple(self, codigo: str, titulo: str, autor_nombre: str, autor_apellido: str,
                             anio: int, cantidad_ejemplares: int, estanteria_id: int,
                             genero_nombre: Optional[str] = None, isbn: Optional[str] = None,
@@ -239,57 +254,25 @@ class GestorBiblioteca:
             raise ValueError(f"Año debe estar entre 1500 y {datetime.now().year}")
         if not isinstance(cantidad_ejemplares, int) or cantidad_ejemplares < 1:
             raise ValueError("Cantidad de ejemplares debe ser un entero positivo")
-        if not self.db.get_estanteria(estanteria_id):
-            raise ValueError(f"Estantería {estanteria_id} no existe")
         
-        # Validar que no exista otro libro con el mismo código
-        libro_existente = self.db.get_libro_por_codigo(codigo)
-        if libro_existente:
-            raise ValueError(f"Ya existe un libro con el código '{codigo}'")
-        
-        # Nota: Los títulos SÍ pueden repetirse según requisitos del proyecto
-        
-        # Validar capacidad de la estantería
         estanteria = self.db.get_estanteria(estanteria_id)
         if not estanteria:
             raise ValueError(f"Estantería {estanteria_id} no existe")
         
-        # Contar ejemplares actuales en la estantería
-        cursor = self.db.conn.cursor()
-        cursor.execute("SELECT COUNT(e.id) FROM ejemplares e JOIN libros l ON e.libro_id = l.id WHERE l.estanteria_id = ?", (estanteria_id,))
-        ejemplares_actuales = cursor.fetchone()[0]
+        # Validar que no exista otro libro con el mismo código
+        if self.db.get_libro_por_codigo(codigo):
+            raise ValueError(f"Ya existe un libro con el código '{codigo}'")
         
+        # Validar capacidad de la estantería
+        ejemplares_actuales = self.get_count_ejemplares_en_estanteria(estanteria_id)
         if (ejemplares_actuales + cantidad_ejemplares) > estanteria.capacidad:
             raise ValueError(f"No hay suficiente espacio en la estantería '{estanteria.nombre}'. "
                            f"Capacidad: {estanteria.capacidad}, Ocupados: {ejemplares_actuales}, "
                            f"Intentando agregar: {cantidad_ejemplares}")
 
-        # Buscar o crear autor
-        autores = self.get_todos_autores()
-        autor = None
-        for a in autores:
-            if a.nombre.lower() == autor_nombre.lower() and a.apellido.lower() == autor_apellido.lower():
-                autor = a
-                break
-        
-        if not autor:
-            autor_id = self.agregar_autor(autor_nombre, autor_apellido)
-            autor = self.get_autor(autor_id)
-
-        # Buscar o crear género si se especifica
-        genero_id = None
-        if genero_nombre:
-            generos = self.get_todos_generos()
-            genero = None
-            for g in generos:
-                if g.nombre.lower() == genero_nombre.lower():
-                    genero = g
-                    break
-            
-            if not genero:
-                genero_id = self.agregar_genero(genero_nombre)
-            else:
-                genero_id = genero.id
+        # Usar métodos encapsulados para buscar o crear autor y género
+        autor = self._find_or_create_autor(autor_nombre, autor_apellido)
+        genero_id = self._find_or_create_genero(genero_nombre)
 
         # Crear libro nuevo
         def _insertar_libro_completo(cursor):
@@ -298,11 +281,19 @@ class GestorBiblioteca:
                           (codigo, titulo, isbn, anio, editorial, autor.id, genero_id, estanteria_id))
             libro_id = cursor.lastrowid
             
-            # Crear ejemplares automáticamente
+            # Crear ejemplares automáticamente con ubicación física
             for i in range(cantidad_ejemplares):
                 codigo_ejemplar = f"{codigo}-{i+1:03d}"
-                cursor.execute("""INSERT INTO ejemplares (libro_id, codigo_ejemplar) VALUES (?, ?)""",
-                              (libro_id, codigo_ejemplar))
+
+                # Calcular ubicación
+                total_ejemplares_en_estanteria = ejemplares_actuales + i + 1
+                nivel = ((total_ejemplares_en_estanteria - 1) // 10) + 1
+                posicion = ((total_ejemplares_en_estanteria - 1) % 10) + 1
+                ubicacion = f"Estantería {estanteria.nombre} - Nivel {nivel} - Pos {posicion}"
+
+                cursor.execute("""INSERT INTO ejemplares (libro_id, codigo_ejemplar, ubicacion_fisica, estado)
+                                VALUES (?, ?, ?, ?)""",
+                              (libro_id, codigo_ejemplar, ubicacion, 'disponible'))
             
             return libro_id
         
@@ -321,36 +312,7 @@ class GestorBiblioteca:
     # ============ FUNCIONES DE REPORTES ============
     def get_resumen_biblioteca(self) -> dict:
         """Obtiene un resumen completo de la biblioteca."""
-        cursor = self.db.conn.cursor()
-        
-        # Contar totales
-        cursor.execute("SELECT COUNT(*) FROM libros")
-        total_libros = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT COUNT(*) FROM ejemplares")
-        total_ejemplares = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT COUNT(*) FROM ejemplares WHERE estado = 'disponible'")
-        ejemplares_disponibles = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT COUNT(*) FROM prestamos WHERE estado = 'activo'")
-        prestamos_activos = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT COUNT(*) FROM prestamos WHERE estado = 'activo' AND fecha_devolucion_esperada < CURRENT_DATE")
-        prestamos_vencidos = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT COUNT(*) FROM usuarios WHERE activo = 1")
-        usuarios_activos = cursor.fetchone()[0]
-        
-        return {
-            "total_libros": total_libros,
-            "total_ejemplares": total_ejemplares,
-            "ejemplares_disponibles": ejemplares_disponibles,
-            "ejemplares_prestados": total_ejemplares - ejemplares_disponibles,
-            "prestamos_activos": prestamos_activos,
-            "prestamos_vencidos": prestamos_vencidos,
-            "usuarios_activos": usuarios_activos
-        }
+        return self.db.get_resumen_dashboard()
 
     def get_todos_los_libros(self) -> List[Libro]:
         """Obtiene una lista de todos los libros en el sistema."""

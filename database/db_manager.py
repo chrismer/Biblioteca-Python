@@ -189,9 +189,10 @@ class DBManager:
             return Estanteria(row['id'], row['nombre'], row['capacidad'])
         return None
 
-    def get_count_libros_en_estanteria(self, estanteria_id: int) -> int:
+    def get_count_ejemplares_en_estanteria(self, estanteria_id: int) -> int:
+        """Cuenta el número de ejemplares en una estantería específica."""
         cursor = self.conn.cursor()
-        cursor.execute("SELECT COUNT(*) FROM libros WHERE estanteria_id = ?", (estanteria_id,))
+        cursor.execute("SELECT COUNT(e.id) FROM ejemplares e JOIN libros l ON e.libro_id = l.id WHERE l.estanteria_id = ?", (estanteria_id,))
         return cursor.fetchone()[0]
 
     def get_libros_por_estanteria(self, estanteria_id: int) -> List[Libro]:
@@ -385,6 +386,16 @@ class DBManager:
                      row['fecha_nacimiento'], row['biografia']) 
                 for row in cursor.fetchall()]
 
+    def find_autor_by_name(self, nombre: str, apellido: str) -> Optional[Autor]:
+        """Busca un autor por su nombre y apellido."""
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT * FROM autores WHERE nombre = ? AND apellido = ?", (nombre, apellido))
+        row = cursor.fetchone()
+        if row:
+            return Autor(row['id'], row['nombre'], row['apellido'], row['nacionalidad'],
+                        row['fecha_nacimiento'], row['biografia'])
+        return None
+
     # ============ FUNCIONES PARA GÉNEROS ============
     def insertar_genero(self, nombre: str, descripcion: Optional[str] = None) -> int:
         def _insert(cursor):
@@ -406,6 +417,15 @@ class DBManager:
         cursor.execute("SELECT * FROM generos ORDER BY nombre")
         return [Genero(row['id'], row['nombre'], row['descripcion']) 
                 for row in cursor.fetchall()]
+
+    def find_genero_by_name(self, nombre: str) -> Optional[Genero]:
+        """Busca un género por su nombre."""
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT * FROM generos WHERE nombre = ?", (nombre,))
+        row = cursor.fetchone()
+        if row:
+            return Genero(row['id'], row['nombre'], row['descripcion'])
+        return None
 
     # ============ FUNCIONES PARA EJEMPLARES ============
     def _generar_ubicacion_automatica(self, libro_id: int) -> str:
@@ -624,6 +644,33 @@ class DBManager:
             ORDER BY l.titulo
         """)
         return [self._hidratar_libro(row) for row in cursor.fetchall()]
+
+    def get_resumen_dashboard(self) -> dict:
+        """Obtiene un resumen de estadísticas para el dashboard."""
+        cursor = self.conn.cursor()
+
+        # Ejecutar todas las consultas de conteo de una vez
+        cursor.execute("""
+            SELECT
+                (SELECT COUNT(*) FROM libros) as total_libros,
+                (SELECT COUNT(*) FROM ejemplares) as total_ejemplares,
+                (SELECT COUNT(*) FROM ejemplares WHERE estado = 'disponible') as ejemplares_disponibles,
+                (SELECT COUNT(*) FROM prestamos WHERE estado = 'activo') as prestamos_activos,
+                (SELECT COUNT(*) FROM prestamos WHERE estado = 'activo' AND fecha_devolucion_esperada < CURRENT_DATE) as prestamos_vencidos,
+                (SELECT COUNT(*) FROM usuarios WHERE activo = 1) as usuarios_activos
+        """)
+
+        stats = cursor.fetchone()
+
+        return {
+            "total_libros": stats['total_libros'],
+            "total_ejemplares": stats['total_ejemplares'],
+            "ejemplares_disponibles": stats['ejemplares_disponibles'],
+            "ejemplares_prestados": stats['total_ejemplares'] - stats['ejemplares_disponibles'],
+            "prestamos_activos": stats['prestamos_activos'],
+            "prestamos_vencidos": stats['prestamos_vencidos'],
+            "usuarios_activos": stats['usuarios_activos']
+        }
 
     # función mover_libro para que chequee la cantidad de ejemplares
     def mover_libro(self, libro_id: int, nueva_estanteria_id: int):
