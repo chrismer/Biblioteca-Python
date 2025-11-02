@@ -143,130 +143,76 @@ class ListFrame(ctk.CTkFrame):
             messagebox.showerror("Error", f"Error al recargar la vista: {str(e)}")
 
     def ver_ejemplares(self, libro: Libro):
-        """Muestra los ejemplares individuales de un libro."""
-        try:
-            # Crear ventana emergente para mostrar ejemplares
-            ejemplares_window = ctk.CTkToplevel(self)
-            ejemplares_window.title(f"Ejemplares de '{libro.titulo}'")
-            ejemplares_window.geometry("800x600")
+        """Muestra los ejemplares individuales de un libro en una ventana emergente."""
+        ejemplares_window = ctk.CTkToplevel(self)
+        ejemplares_window.title(f"Ejemplares de '{libro.titulo}'")
+        ejemplares_window.geometry("800x600")
+        ejemplares_window.lift()
+        ejemplares_window.focus_force()
+        ejemplares_window.grab_set()
+
+        ctk.CTkLabel(ejemplares_window, text=f"📚 Gestión de Ejemplares: {libro.titulo}", font=("Arial", 16, "bold")).pack(pady=10)
+
+        # Frame para botones de acción globales
+        top_actions_frame = ctk.CTkFrame(ejemplares_window, fg_color="transparent")
+        top_actions_frame.pack(pady=5, padx=20, fill="x")
+
+        ctk.CTkButton(top_actions_frame, text="➕ Añadir Nuevo Ejemplar", fg_color="green",
+                     command=lambda: self.agregar_ejemplar_action(libro, ejemplares_window)).pack(side="left")
+
+        # Frame para la lista de ejemplares
+        scroll_frame = ctk.CTkScrollableFrame(ejemplares_window)
+        scroll_frame.pack(pady=10, padx=10, fill="both", expand=True)
+
+        self.redraw_ejemplares_list(scroll_frame, libro)
+
+        ctk.CTkButton(ejemplares_window, text="Cerrar", command=ejemplares_window.destroy).pack(pady=10)
+
+    def redraw_ejemplares_list(self, frame, libro):
+        """Limpia y redibuja la lista de ejemplares."""
+        for widget in frame.winfo_children():
+            widget.destroy()
+
+        headers = ["Código", "Estado", "Ubicación", "Adquisición", "Acciones"]
+        for i, header in enumerate(headers):
+            ctk.CTkLabel(frame, text=header, font=("Arial", 12, "bold")).grid(row=0, column=i, padx=10, pady=5)
+
+        ejemplares = self.gestor.get_ejemplares_por_libro(libro.id)
+        for row_num, ejemplar in enumerate(ejemplares, start=1):
+            ctk.CTkLabel(frame, text=ejemplar.codigo_ejemplar).grid(row=row_num, column=0, padx=10, pady=2)
             
-            # Forzar que la ventana aparezca al frente
-            ejemplares_window.lift()
-            ejemplares_window.focus_force()
-            ejemplares_window.grab_set()
+            estado_color = 'green' if ejemplar.estado == 'disponible' else 'orange'
+            ctk.CTkLabel(frame, text=f"{'✅' if ejemplar.estado == 'disponible' else '📤'} {ejemplar.estado.title()}", text_color=estado_color).grid(row=row_num, column=1, padx=10, pady=2)
             
-            ctk.CTkLabel(ejemplares_window, text=f"📚 Ejemplares de '{libro.titulo}'", 
-                        font=("Arial", 16, "bold")).pack(pady=10)
+            ctk.CTkLabel(frame, text=ejemplar.ubicacion_fisica or "N/A").grid(row=row_num, column=2, padx=10, pady=2)
+            ctk.CTkLabel(frame, text=str(ejemplar.fecha_adquisicion)).grid(row=row_num, column=3, padx=10, pady=2)
             
-            # Información del libro
-            info_frame = ctk.CTkFrame(ejemplares_window, fg_color="blue")
-            info_frame.pack(pady=10, padx=20, fill="x")
-            
-            # Información del libro con datos seguros
-            autor_nombre = libro.autor.nombre_completo if libro.autor else "Autor Desconocido"
-            disponibles_count = libro.cantidad_disponibles
-            info_text = f"📖 Código: {libro.codigo} | 👨‍💼 Autor: {autor_nombre} | 📊 Disponibles: {disponibles_count}"
-            ctk.CTkLabel(info_frame, text=info_text, text_color="white").pack(pady=5)
-            
-            # Intentar obtener ejemplares del nuevo sistema
-            ejemplares = []
-            libro_id = None
-            
-            try:
-                # Primero intentar con el ID directo si existe
-                if hasattr(libro, 'id') and libro.id and libro.id > 0:
-                    libro_id = libro.id
-                else:
-                    # Buscar por código en la base de datos
-                    cursor = self.gestor.db.conn.cursor()
-                    cursor.execute("SELECT id FROM libros WHERE codigo = ?", (libro.codigo,))
-                    row = cursor.fetchone()
-                    if row:
-                        libro_id = row['id']
-                
-                # Si tenemos libro_id, obtener ejemplares
-                if libro_id:
-                    ejemplares = self.gestor.get_ejemplares_por_libro(libro_id)
-                    
-            except Exception as e:
-                print(f"Error obteniendo ejemplares: {e}")
-                import traceback
-                traceback.print_exc()
-                ejemplares = []
-            
-            if len(ejemplares) > 0:
-                # Frame con scroll para ejemplares
-                scroll_frame = ctk.CTkScrollableFrame(ejemplares_window)
-                scroll_frame.pack(pady=10, padx=10, fill="both", expand=True)
-                
-                # Encabezados (sin columna de Acciones)
-                headers = ["Código Ejemplar", "Estado", "Ubicación", "Fecha Adquisición"]
-                for i, header in enumerate(headers):
-                    ctk.CTkLabel(scroll_frame, text=header, font=("Arial", 12, "bold")).grid(
-                        row=0, column=i, padx=10, pady=5)
-                
-                # Datos de ejemplares (solo información, sin botones)
-                for row_num, ejemplar in enumerate(ejemplares, start=1):
-                    ctk.CTkLabel(scroll_frame, text=ejemplar.codigo_ejemplar).grid(row=row_num, column=0, padx=10, pady=2)
-                    
-                    # Estado con color
-                    estado_color = {
-                        'disponible': 'green',
-                        'prestado': 'orange',
-                        'dañado': 'red',
-                        'perdido': 'purple',
-                        'en_reparacion': 'yellow'
-                    }.get(ejemplar.estado, 'gray')
-                    
-                    estado_emoji = {
-                        'disponible': '✅',
-                        'prestado': '📤',
-                        'dañado': '🔧',
-                        'perdido': '❌',
-                        'en_reparacion': '⚠️'
-                    }.get(ejemplar.estado, '❓')
-                    
-                    ctk.CTkLabel(scroll_frame, text=f"{estado_emoji} {ejemplar.estado.title()}", 
-                               text_color=estado_color).grid(row=row_num, column=1, padx=10, pady=2)
-                    
-                    ctk.CTkLabel(scroll_frame, text=ejemplar.ubicacion_fisica or "No especificada").grid(
-                        row=row_num, column=2, padx=10, pady=2)
-                    ctk.CTkLabel(scroll_frame, text=str(ejemplar.fecha_adquisicion)).grid(
-                        row=row_num, column=3, padx=10, pady=2)
+            actions_frame = ctk.CTkFrame(frame, fg_color="transparent")
+            actions_frame.grid(row=row_num, column=4, padx=10)
+
+            if ejemplar.estado == 'disponible':
+                ctk.CTkButton(actions_frame, text="🗑️", fg_color="red", width=30,
+                             command=lambda e=ejemplar, l=libro, f=frame: self.eliminar_ejemplar_action(e, l, f)).pack()
             else:
-                # Mostrar información legacy
-                legacy_frame = ctk.CTkFrame(ejemplares_window, fg_color="orange")
-                legacy_frame.pack(pady=20, padx=20, fill="x")
-                
-                # Obtener datos de manera segura
-                total = 0
-                if hasattr(libro, '_cantidad_total_legacy'):
-                    total = libro._cantidad_total_legacy
-                elif hasattr(libro, 'cantidad_total'):
-                    total = libro.cantidad_total
-                
-                prestados_legacy = 0
-                if hasattr(libro, '_cantidad_prestados_legacy'):
-                    prestados_legacy = libro._cantidad_prestados_legacy
-                elif hasattr(libro, 'cantidad_prestados'):
-                    prestados_legacy = libro.cantidad_prestados
-                
-                disponibles = getattr(libro, 'disponibles', libro.cantidad_disponibles)
-                
-                legacy_text = f"📋 VISTA SIMPLIFICADA (Sistema Legacy)\n\n"
-                legacy_text += f"📦 Total de ejemplares: {total}\n"
-                legacy_text += f"✅ Disponibles: {disponibles}\n"
-                legacy_text += f"📤 Prestados: {prestados_legacy}\n\n"
-                legacy_text += f"💡 Para ver ejemplares individuales, use el nuevo sistema de gestión de préstamos."
-                
-                ctk.CTkLabel(legacy_frame, text=legacy_text, text_color="white").pack(pady=10)
-            
-            # Botón cerrar
-            ctk.CTkButton(ejemplares_window, text="Cerrar", 
-                         command=ejemplares_window.destroy).pack(pady=10)
-            
+                ctk.CTkButton(actions_frame, text="🚫", fg_color="gray", width=30, state="disabled").pack()
+
+    def agregar_ejemplar_action(self, libro, window):
+        try:
+            if confirmar("Confirmar", f"¿Desea añadir un nuevo ejemplar para '{libro.titulo}'?", parent=window):
+                self.gestor.agregar_nuevo_ejemplar(libro.id)
+                messagebox.showinfo("Éxito", "Nuevo ejemplar añadido correctamente.", parent=window)
+                self.redraw_ejemplares_list(window.winfo_children()[1], libro) # Redibujar la lista
         except Exception as e:
-            messagebox.showerror("Error", f"Error al mostrar ejemplares: {str(e)}")
+            messagebox.showerror("Error", str(e), parent=window)
+
+    def eliminar_ejemplar_action(self, ejemplar, libro, frame):
+        try:
+            if confirmar("Confirmar Eliminación", f"¿Está seguro de eliminar el ejemplar {ejemplar.codigo_ejemplar}?", parent=frame):
+                self.gestor.eliminar_ejemplar(ejemplar.id)
+                messagebox.showinfo("Éxito", "Ejemplar eliminado.", parent=frame)
+                self.redraw_ejemplares_list(frame, libro)
+        except Exception as e:
+            messagebox.showerror("Error", str(e), parent=frame)
 
     def prestar_ejemplar_individual(self, ejemplar, window):
         """Presta un ejemplar específico."""
