@@ -281,11 +281,19 @@ class GestorBiblioteca:
                           (codigo, titulo, isbn, anio, editorial, autor.id, genero_id, estanteria_id))
             libro_id = cursor.lastrowid
             
-            # Crear ejemplares automáticamente
+            # Crear ejemplares automáticamente con ubicación física
             for i in range(cantidad_ejemplares):
                 codigo_ejemplar = f"{codigo}-{i+1:03d}"
-                cursor.execute("""INSERT INTO ejemplares (libro_id, codigo_ejemplar) VALUES (?, ?)""",
-                              (libro_id, codigo_ejemplar))
+
+                # Calcular ubicación
+                total_ejemplares_en_estanteria = ejemplares_actuales + i + 1
+                nivel = ((total_ejemplares_en_estanteria - 1) // 10) + 1
+                posicion = ((total_ejemplares_en_estanteria - 1) % 10) + 1
+                ubicacion = f"Estantería {estanteria.nombre} - Nivel {nivel} - Pos {posicion}"
+
+                cursor.execute("""INSERT INTO ejemplares (libro_id, codigo_ejemplar, ubicacion_fisica, estado)
+                                VALUES (?, ?, ?, ?)""",
+                              (libro_id, codigo_ejemplar, ubicacion, 'disponible'))
             
             return libro_id
         
