@@ -127,15 +127,3 @@ def confirmar(titulo: str, mensaje: str, parent=None) -> bool:
     dialog.wait_window()
     
     return result.get()
-
-def mostrar_info(titulo: str, mensaje: str, parent=None):
-    """Muestra un diálogo de información personalizado."""
-    messagebox.showinfo(titulo, mensaje, parent=parent)
-
-def mostrar_error(titulo: str, mensaje: str, parent=None):
-    """Muestra un diálogo de error personalizado."""
-    messagebox.showerror(titulo, mensaje, parent=parent)
-
-def mostrar_advertencia(titulo: str, mensaje: str, parent=None):
-    """Muestra un diálogo de advertencia personalizado."""
-    messagebox.showwarning(titulo, mensaje, parent=parent)

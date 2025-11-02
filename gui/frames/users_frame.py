@@ -2,7 +2,6 @@ import customtkinter as ctk
 from typing import TYPE_CHECKING
 from tkinter import messagebox
 from logic.models import Usuario
-from gui.utils.helpers import borrar_widgets
 from gui.utils.dialogs import confirmar
 
 if TYPE_CHECKING:
@@ -42,7 +41,8 @@ class UsersFrame(ctk.CTkFrame):
 
     def mostrar_agregar_usuario(self):
         """Muestra el formulario para agregar usuario."""
-        borrar_widgets(self.content_frame)
+        for widget in self.content_frame.winfo_children():
+            widget.destroy()
         
         ctk.CTkLabel(self.content_frame, text="Agregar Nuevo Usuario", 
                     font=("Arial", 16, "bold")).pack(pady=10)
@@ -104,7 +104,8 @@ class UsersFrame(ctk.CTkFrame):
 
     def mostrar_lista_usuarios(self):
         """Muestra la lista de todos los usuarios."""
-        borrar_widgets(self.content_frame) 
+        for widget in self.content_frame.winfo_children():
+            widget.destroy()
         
         ctk.CTkLabel(self.content_frame, text="Lista de Usuarios", 
                     font=("Arial", 16, "bold")).pack(pady=10)
@@ -222,7 +223,8 @@ class UsersFrame(ctk.CTkFrame):
 
     def mostrar_buscar_usuario(self):
         """Muestra el formulario para buscar usuario."""
-        borrar_widgets(self.content_frame)
+        for widget in self.content_frame.winfo_children():
+            widget.destroy()
         
         search_panel = ctk.CTkFrame(self.content_frame)
         search_panel.pack(pady=10, padx=10, fill="x")
@@ -239,7 +241,8 @@ class UsersFrame(ctk.CTkFrame):
 
     def buscar_usuario(self):
         """Busca usuarios por nombre."""
-        borrar_widgets(self.results_panel)
+        for widget in self.results_panel.winfo_children():
+            widget.destroy()
 
         try:
             termino = self.entry_buscar.get().strip().lower()
