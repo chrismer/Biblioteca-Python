@@ -3,7 +3,6 @@ from tkinter import messagebox
 from typing import TYPE_CHECKING, Optional
 from .base_frame import BaseFrame
 from logic.models import Libro
-from .main_frame import MainFrame
 
 if TYPE_CHECKING:
     from gui.app import App
@@ -121,7 +120,7 @@ class BookFormFrame(BaseFrame):
             anio=anio, cantidad_ejemplares=cantidad, estanteria_id=shelf_id
         )
         messagebox.showinfo("Éxito", f"Libro '{titulo}' agregado correctamente.")
-        self.master.switch_frame(MainFrame)
+        self._go_to_main_frame()
 
     def actualizar_libro(self):
         # Lógica de `edit_book_frame`
@@ -145,4 +144,9 @@ class BookFormFrame(BaseFrame):
         }
         self.gestor.modificar_libro_completo(self.libro.id, datos_nuevos)
         messagebox.showinfo("Éxito", f"Libro '{titulo}' actualizado correctamente.")
+        self._go_to_main_frame()
+
+    def _go_to_main_frame(self):
+        """Navega al MainFrame, usando una importación local para evitar ciclos."""
+        from .main_frame import MainFrame
         self.master.switch_frame(MainFrame)
