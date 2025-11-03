@@ -1,7 +1,6 @@
 import customtkinter as ctk
 from tkinter import messagebox
 from typing import TYPE_CHECKING, List, Optional
-from .main_frame import MainFrame
 from logic.models import Libro, Estanteria
 from gui.frames.base_frame import BaseFrame
 
@@ -285,7 +284,12 @@ class MoveBookFrame(BaseFrame):
                               f"El libro '{self.libro_seleccionado.titulo}' y sus {num_ejemplares} ejemplar(es)\n"
                               f"han sido movidos a '{estanteria_destino.nombre}' correctamente.")
             
-            self.master.switch_frame(MainFrame)
+            self._go_to_main_frame()
             
         except Exception as e:
             messagebox.showerror("❌ Error", f"Error al mover el libro:\n{str(e)}")
+
+    def _go_to_main_frame(self):
+        """Navega al MainFrame, usando una importación local para evitar ciclos."""
+        from .main_frame import MainFrame
+        self.master.switch_frame(MainFrame)

@@ -5,7 +5,6 @@ from logic.models import Libro
 from gui.utils.dialogs import confirmar
 
 # Importaciones para navegación
-from .main_frame import MainFrame
 from .book_form_frame import BookFormFrame
 
 if TYPE_CHECKING:
@@ -102,7 +101,12 @@ class ListFrame(ctk.CTkFrame):
             ctk.CTkButton(actions_frame, text="🗑️ Eliminar", width=70, fg_color="red", command=lambda l=libro: self.eliminar_libro(l)).pack(side="left", padx=2)
 
         # Botón para volver al menú principal
-        ctk.CTkButton(self, text="Volver", fg_color="gray", command=lambda: self.master.switch_frame(MainFrame)).pack(pady=20)
+        ctk.CTkButton(self, text="Volver", fg_color="gray", command=self._go_to_main_frame).pack(pady=20)
+
+    def _go_to_main_frame(self):
+        """Navega al MainFrame, usando una importación local para evitar ciclos."""
+        from .main_frame import MainFrame
+        self.master.switch_frame(MainFrame)
 
     def prestar(self, libro: Libro):
         try:
@@ -243,7 +247,7 @@ class ListFrame(ctk.CTkFrame):
     def editar_libro(self, libro: Libro):
         """Abre la ventana de edición para el libro."""
         try:
-            self.master.switch_frame(BookFormFrame, libro=libro, edit_mode=True)
+            self.master.switch_frame(BookFormFrame, libro=libro)
         except Exception as e:
             messagebox.showerror("Error", f"Error al abrir editor: {str(e)}")
 

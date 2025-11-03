@@ -4,7 +4,6 @@ from tkinter import messagebox, ttk
 from datetime import date, timedelta
 from logic.models import Prestamo, Usuario, Ejemplar
 from gui.utils.dialogs import confirmar
-from .main_frame import MainFrame
 
 if TYPE_CHECKING:
     from gui.app import App
@@ -38,10 +37,15 @@ class LoansFrame(ctk.CTkFrame):
         
         # Botón volver
         ctk.CTkButton(self, text="← Volver", fg_color="gray", 
-                     command=lambda: self.master.switch_frame(MainFrame)).pack(pady=20)
+                     command=self._go_to_main_frame).pack(pady=20)
         
         # Mostrar préstamos activos por defecto
         self.mostrar_prestamos_activos()
+
+    def _go_to_main_frame(self):
+        """Navega al MainFrame, usando una importación local para evitar ciclos."""
+        from .main_frame import MainFrame
+        self.master.switch_frame(MainFrame)
 
     def limpiar_content_frame(self):
         """Limpia el frame de contenido."""
