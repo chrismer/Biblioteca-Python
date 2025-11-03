@@ -1,6 +1,7 @@
 import customtkinter as ctk
 from tkinter import messagebox
 from typing import TYPE_CHECKING
+from .main_frame import MainFrame
 
 if TYPE_CHECKING:
     from gui.app import App
@@ -36,7 +37,7 @@ class AddShelfFrame(ctk.CTkFrame):
         button_frame.grid(row=2, column=0, columnspan=2, pady=20)
 
         ctk.CTkButton(button_frame, text="Guardar Estantería", command=self.guardar_estanteria).pack(side="left", padx=10)
-        ctk.CTkButton(button_frame, text="Volver", fg_color="gray", command=lambda: self.master.switch_frame(self.master.main_frame_class)).pack(side="left", padx=10)
+        ctk.CTkButton(button_frame, text="Volver", fg_color="gray", command=lambda: self.master.switch_frame(MainFrame)).pack(side="left", padx=10)
 
     def guardar_estanteria(self):
         nombre = self.nombre_entry.get()
@@ -49,7 +50,7 @@ class AddShelfFrame(ctk.CTkFrame):
 
             self.gestor.agregar_estanteria(nombre, capacidad)
             messagebox.showinfo("Éxito", f"Estantería '{nombre}' agregada correctamente.")
-            self.master.switch_frame(self.master.main_frame_class) # Vuelve al menú principal
+            self.master.switch_frame(MainFrame) # Vuelve al menú principal
 
         except Exception as e:
             messagebox.showerror("Error de Validación", str(e))

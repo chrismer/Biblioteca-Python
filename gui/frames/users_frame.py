@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 from tkinter import messagebox
 from logic.models import Usuario
 from gui.utils.dialogs import confirmar
+from .main_frame import MainFrame
 
 if TYPE_CHECKING:
     from gui.app import App
@@ -34,7 +35,7 @@ class UsersFrame(ctk.CTkFrame):
         
         # Botón volver
         ctk.CTkButton(self, text="← Volver", fg_color="gray", 
-                     command=lambda: self.master.switch_frame(self.master.main_frame_class)).pack(pady=20)
+                     command=lambda: self.master.switch_frame(MainFrame)).pack(pady=20)
         
         # Mostrar lista por defecto
         self.mostrar_lista_usuarios()

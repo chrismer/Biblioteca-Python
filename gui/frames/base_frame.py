@@ -1,5 +1,6 @@
 import customtkinter as ctk
 from PIL import Image
+from .main_frame import MainFrame
 import os
 from typing import TYPE_CHECKING
 
@@ -95,4 +96,4 @@ class BaseFrame(ctk.CTkFrame):
                      fg_color=self.colors['secondary'],
                      hover_color=self.colors['muted'],
                      corner_radius=20,
-                     command=lambda: self.master.switch_frame(self.master.main_frame_class)).pack()
+                     command=lambda: self.master.switch_frame(MainFrame)).pack()
