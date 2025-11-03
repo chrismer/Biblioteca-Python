@@ -95,4 +95,9 @@ class BaseFrame(ctk.CTkFrame):
                      fg_color=self.colors['secondary'],
                      hover_color=self.colors['muted'],
                      corner_radius=20,
-                     command=lambda: self.master.switch_frame(self.master.main_frame_class)).pack()
+                     command=self._go_to_main_frame).pack()
+
+    def _go_to_main_frame(self):
+        """Función helper para evitar importación circular."""
+        from .main_frame import MainFrame
+        self.master.switch_frame(MainFrame)

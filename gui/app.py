@@ -3,13 +3,6 @@ import tkinter as tk
 import os
 from logic.library_manager import GestorBiblioteca
 from gui.frames.main_frame import MainFrame
-from gui.frames.add_book_frame import AddBookFrame
-from gui.frames.add_shelf_frame import AddShelfFrame 
-from gui.frames.manage_shelves_frame import ManageShelvesFrame
-from gui.frames.list_frame import ListFrame
-from gui.frames.move_book_frame import MoveBookFrame
-from gui.frames.search_book_frame import SearchBookFrame
-from gui.frames.edit_book_frame import EditBookFrame
 
 class App(ctk.CTk):
     def __init__(self):
@@ -30,10 +23,8 @@ class App(ctk.CTk):
         
         self.gestor = GestorBiblioteca()
         
-        self.main_frame_class = MainFrame 
         self.current_frame = None
-        self.current_frame_title = ""
-        self.switch_frame(self.main_frame_class)
+        self.switch_frame(MainFrame)
 
     def switch_frame(self, frame_class, **kwargs):
         """
@@ -45,9 +36,6 @@ class App(ctk.CTk):
         
         self.current_frame = frame_class(self, self.gestor, **kwargs)
         self.current_frame.pack(fill="both", expand=True)
-
-        if 'titulo' in kwargs:
-            self.current_frame_title = kwargs['titulo']
 
     def set_custom_icon(self):
         """Configura el icono personalizado de BiblioHub"""

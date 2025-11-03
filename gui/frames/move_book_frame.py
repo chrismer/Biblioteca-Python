@@ -284,7 +284,12 @@ class MoveBookFrame(BaseFrame):
                               f"El libro '{self.libro_seleccionado.titulo}' y sus {num_ejemplares} ejemplar(es)\n"
                               f"han sido movidos a '{estanteria_destino.nombre}' correctamente.")
             
-            self.master.switch_frame(self.master.main_frame_class)
+            self._go_to_main_frame()
             
         except Exception as e:
             messagebox.showerror("❌ Error", f"Error al mover el libro:\n{str(e)}")
+
+    def _go_to_main_frame(self):
+        """Navega al MainFrame, usando una importación local para evitar ciclos."""
+        from .main_frame import MainFrame
+        self.master.switch_frame(MainFrame)

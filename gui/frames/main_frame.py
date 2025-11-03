@@ -1,16 +1,17 @@
 import customtkinter as ctk
 from tkinter import messagebox
 from typing import TYPE_CHECKING
-from .add_book_frame import AddBookFrame
-from .add_shelf_frame import AddShelfFrame
-from .manage_shelves_frame import ManageShelvesFrame
-from .list_frame import ListFrame
-from .users_frame import UsersFrame
-from .loans_frame import LoansFrame
 from PIL import Image
-from .move_book_frame import MoveBookFrame
-from .search_book_frame import SearchBookFrame
 import os
+
+# Importaciones de frames necesarios para la navegación
+from .book_form_frame import BookFormFrame
+from .search_book_frame import SearchBookFrame
+from .list_frame import ListFrame
+from .loans_frame import LoansFrame
+from .users_frame import UsersFrame
+from .manage_shelves_frame import ManageShelvesFrame
+from .move_book_frame import MoveBookFrame
 
 if TYPE_CHECKING:
     from logic.library_manager import GestorBiblioteca
@@ -203,7 +204,7 @@ class MainFrame(ctk.CTkFrame):
                 'icon': '📚',
                 'color': self.colors['primary'],
                 'actions': [
-                    ('Agregar Libro', lambda: self.master.switch_frame(AddBookFrame)),
+                    ('Agregar Libro', lambda: self.master.switch_frame(BookFormFrame)),
                     ('Listar Disponibles', self.mostrar_disponibles),
                     ('Buscar Libro', lambda: self.master.switch_frame(SearchBookFrame))
                 ]

@@ -36,7 +36,7 @@ class AddShelfFrame(ctk.CTkFrame):
         button_frame.grid(row=2, column=0, columnspan=2, pady=20)
 
         ctk.CTkButton(button_frame, text="Guardar Estantería", command=self.guardar_estanteria).pack(side="left", padx=10)
-        ctk.CTkButton(button_frame, text="Volver", fg_color="gray", command=lambda: self.master.switch_frame(self.master.main_frame_class)).pack(side="left", padx=10)
+        ctk.CTkButton(button_frame, text="Volver", fg_color="gray", command=self._go_to_main_frame).pack(side="left", padx=10)
 
     def guardar_estanteria(self):
         nombre = self.nombre_entry.get()
@@ -49,7 +49,12 @@ class AddShelfFrame(ctk.CTkFrame):
 
             self.gestor.agregar_estanteria(nombre, capacidad)
             messagebox.showinfo("Éxito", f"Estantería '{nombre}' agregada correctamente.")
-            self.master.switch_frame(self.master.main_frame_class) # Vuelve al menú principal
+            self._go_to_main_frame() # Vuelve al menú principal
 
         except Exception as e:
             messagebox.showerror("Error de Validación", str(e))
+
+    def _go_to_main_frame(self):
+        """Navega al MainFrame, usando una importación local para evitar ciclos."""
+        from .main_frame import MainFrame
+        self.master.switch_frame(MainFrame)

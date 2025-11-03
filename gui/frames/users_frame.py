@@ -34,10 +34,15 @@ class UsersFrame(ctk.CTkFrame):
         
         # Botón volver
         ctk.CTkButton(self, text="← Volver", fg_color="gray", 
-                     command=lambda: self.master.switch_frame(self.master.main_frame_class)).pack(pady=20)
+                     command=self._go_to_main_frame).pack(pady=20)
         
         # Mostrar lista por defecto
         self.mostrar_lista_usuarios()
+
+    def _go_to_main_frame(self):
+        """Navega al MainFrame, usando una importación local para evitar ciclos."""
+        from .main_frame import MainFrame
+        self.master.switch_frame(MainFrame)
 
     def mostrar_agregar_usuario(self):
         """Muestra el formulario para agregar usuario."""
