@@ -90,6 +90,12 @@ Sigue estos pasos para ejecutar BiblioHub en tu sistema local.
 #### **1. Prerrequisitos**
 
 * Tener instalado **Python 3.8** o superior.
+* **Ubuntu/Debian**: Instalar `tkinter` (requerido por CustomTkinter):
+
+```bash
+sudo apt update
+sudo apt install python3-tk -y
+```
 
 #### **2. Clonar el Repositorio**
 
