@@ -108,17 +108,6 @@ class GestorBiblioteca:
         primer_prestado = ejemplares_prestados[0]
         self.devolver_ejemplar(primer_prestado.id)
 
-    def buscar_libro_por_codigo(self, codigo: str) -> Optional[Libro]:
-        return self.db.get_libro_por_codigo(codigo)
-
-    def buscar_libros_por_titulo(self, titulo: str) -> List[Libro]:
-        """Búsqueda específica por título (mantiene compatibilidad)."""
-        return self.db.buscar_libros_inteligente(titulo)
-
-    def buscar_libros_por_autor(self, autor: str) -> List[Libro]:
-        """Búsqueda específica por autor (mantiene compatibilidad)."""
-        return self.db.buscar_libros_inteligente(autor)
-
     def get_libros_disponibles(self) -> List[Libro]:
         return self.db.get_libros_disponibles()
 
@@ -189,24 +178,22 @@ class GestorBiblioteca:
         return self.db.get_ejemplares_disponibles()
 
     def agregar_nuevo_ejemplar(self, libro_id: int):
-        """Añade un nuevo ejemplar a un libro existente."""
+        """
+        Añade un nuevo ejemplar a un libro existente, delegando la creación
+        de la ubicación física a la capa de base de datos.
+        """
         libro = self.db.get_libro_por_id(libro_id)
         if not libro:
             raise ValueError("El libro no existe.")
 
-        # Lógica para generar el nuevo código de ejemplar
+        # Generar nuevo código de ejemplar
         ejemplares = self.get_ejemplares_por_libro(libro_id)
         nuevo_numero = len(ejemplares) + 1
         nuevo_codigo = f"{libro.codigo}-{nuevo_numero:03d}"
 
-        # Lógica para la ubicación
-        estanteria = self.db.get_estanteria(libro.estanteria_id)
-        ejemplares_en_estanteria = self.get_count_ejemplares_en_estanteria(libro.estanteria_id)
-        nivel = ((ejemplares_en_estanteria) // 10) + 1
-        posicion = ((ejemplares_en_estanteria) % 10) + 1
-        ubicacion = f"Estantería {estanteria.nombre} - Nivel {nivel} - Pos {posicion}"
-
-        self.db.insertar_ejemplar(libro_id, nuevo_codigo, ubicacion_fisica=ubicacion)
+        # Llamar a insertar_ejemplar sin `ubicacion_fisica`.
+        # db_manager se encargará de generarla automáticamente.
+        self.db.insertar_ejemplar(libro_id, nuevo_codigo)
 
     def eliminar_ejemplar(self, ejemplar_id: int):
         """Elimina un ejemplar, con validación de estado."""
@@ -275,9 +262,11 @@ class GestorBiblioteca:
                             anio: int, cantidad_ejemplares: int, estanteria_id: int,
                             genero_nombre: Optional[str] = None, isbn: Optional[str] = None,
                             editorial: Optional[str] = None) -> int:
-        """Función simplificada para agregar libro con ejemplares automáticamente."""
-        
-        # Validaciones básicas
+        """
+        Versión simplificada que delega la lógica de inserción transaccional
+        a la capa de base de datos.
+        """
+        # 1. Validaciones en la capa de lógica
         if not all(isinstance(x, str) and x.strip() for x in [codigo, titulo, autor_nombre, autor_apellido]):
             raise ValueError("Código, título, nombre y apellido del autor deben ser strings no vacíos")
         if not self.validar_anio(anio):
@@ -289,53 +278,35 @@ class GestorBiblioteca:
         if not estanteria:
             raise ValueError(f"Estantería {estanteria_id} no existe")
         
-        # Validar que no exista otro libro con el mismo código
         if self.db.get_libro_por_codigo(codigo):
             raise ValueError(f"Ya existe un libro con el código '{codigo}'")
         
-        # Validar capacidad de la estantería
         ejemplares_actuales = self.get_count_ejemplares_en_estanteria(estanteria_id)
         if (ejemplares_actuales + cantidad_ejemplares) > estanteria.capacidad:
             raise ValueError(f"No hay suficiente espacio en la estantería '{estanteria.nombre}'. "
                            f"Capacidad: {estanteria.capacidad}, Ocupados: {ejemplares_actuales}, "
                            f"Intentando agregar: {cantidad_ejemplares}")
 
-        # Usar métodos encapsulados para buscar o crear autor y género
+        # 2. Obtener o crear entidades relacionadas
         autor = self._find_or_create_autor(autor_nombre, autor_apellido)
         genero_id = self._find_or_create_genero(genero_nombre)
 
-        # Crear libro nuevo
-        def _insertar_libro_completo(cursor):
-            cursor.execute("""INSERT INTO libros (codigo, titulo, isbn, anio, editorial, autor_id, genero_id, estanteria_id) 
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-                          (codigo, titulo, isbn, anio, editorial, autor.id, genero_id, estanteria_id))
-            libro_id = cursor.lastrowid
-            
-            # Crear ejemplares automáticamente con ubicación física
-            for i in range(cantidad_ejemplares):
-                codigo_ejemplar = f"{codigo}-{i+1:03d}"
-
-                # Calcular ubicación
-                total_ejemplares_en_estanteria = ejemplares_actuales + i + 1
-                nivel = ((total_ejemplares_en_estanteria - 1) // 10) + 1
-                posicion = ((total_ejemplares_en_estanteria - 1) % 10) + 1
-                ubicacion = f"Estantería {estanteria.nombre} - Nivel {nivel} - Pos {posicion}"
-
-                cursor.execute("""INSERT INTO ejemplares (libro_id, codigo_ejemplar, ubicacion_fisica, estado)
-                                VALUES (?, ?, ?, ?)""",
-                              (libro_id, codigo_ejemplar, ubicacion, 'disponible'))
-            
-            return libro_id
+        # 3. Preparar datos y delegar la inserción
+        libro_info = {
+            "codigo": codigo, "titulo": titulo, "isbn": isbn, "anio": anio,
+            "editorial": editorial, "estanteria_id": estanteria_id
+        }
         
         try:
-            return self.db.execute_transaction(_insertar_libro_completo)
+            return self.db.insertar_libro_con_ejemplares(
+                libro_info, autor.id, genero_id, cantidad_ejemplares
+            )
         except Exception as e:
+            # Re-lanzar errores de unicidad con mensajes amigables
             if "UNIQUE constraint failed" in str(e):
-                if "codigo" in str(e):
+                if "libros.codigo" in str(e):
                     raise ValueError(f"Ya existe un libro con el código '{codigo}'")
-                elif "titulo" in str(e):
-                    raise ValueError(f"Ya existe un libro con el título '{titulo}'")
-                elif "isbn" in str(e):
+                if "libros.isbn" in str(e):
                     raise ValueError(f"Ya existe un libro con el ISBN '{isbn}'")
             raise e
 
@@ -359,30 +330,12 @@ class GestorBiblioteca:
             raise ValueError("El libro ya se encuentra en esa estantería.")
 
         self.db.mover_libro(libro_id, nueva_estanteria_id)
-    
+
     def buscar_libros(self, termino: str) -> List[Libro]:
-        """
-        Búsqueda inteligente de libros.
-        
-        Características:
-        - Insensible a mayúsculas/minúsculas  
-        - Busca palabras parciales
-        - Busca en: título, autor, código, ISBN, editorial
-        - Ordena por relevancia (coincidencias exactas primero)
-        """
+        """Búsqueda inteligente de libros."""
         if not isinstance(termino, str) or not termino.strip():
             return []
-        
-        # Usar la nueva búsqueda inteligente
-        return self.db.buscar_libros_inteligente(termino.strip())
-    
-    def buscar_libros_por_titulo(self, titulo: str) -> List[Libro]:
-        """Búsqueda específica por título (mantiene compatibilidad)."""
-        return self.db.get_libros_por_titulo(titulo)
-    
-    def buscar_libros_por_autor(self, autor: str) -> List[Libro]:
-        """Búsqueda específica por autor (mantiene compatibilidad)."""
-        return self.db.get_libros_por_autor(autor)
+        return self.db.buscar_libros(termino=termino.strip())
 
     def eliminar_libro_y_ejemplares(self, libro_id: int) -> None:
         """Elimina un libro y todos sus ejemplares en cascada."""
