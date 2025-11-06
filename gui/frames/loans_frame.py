@@ -83,13 +83,13 @@ class LoansFrame(ctk.CTkFrame):
         ctk.CTkLabel(form_frame, text="Ejemplar *").grid(row=1, column=0, padx=10, pady=5, sticky="w")
         
         ejemplar_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
-        ejemplar_frame.grid(row=1, column=1, padx=10, pady=5, sticky="w")
+        ejemplar_frame.grid(row=3, column=1, padx=10, pady=5, sticky="w")
 
-        self.ejemplar_entry = ctk.CTkEntry(ejemplar_frame, placeholder_text="Buscar por código...", width=200)
+        self.ejemplar_entry = ctk.CTkEntry(ejemplar_frame, placeholder_text="Buscar por código o título...", width=300)
         self.ejemplar_entry.pack(side="left")
 
-        self.info_ejemplar_label = ctk.CTkLabel(ejemplar_frame, text="", font=("Arial", 12), wraplength=300)
-        self.info_ejemplar_label.pack(side="left", padx=10)
+        self.sugerencias_ejemplar_frame = ctk.CTkScrollableFrame(form_frame, width=280, height=100)
+        # Se mostrará cuando sea necesario
 
         # Vincular evento de tecleo a la búsqueda
         self.ejemplar_entry.bind("<KeyRelease>", self.buscar_ejemplar_on_typing)
@@ -115,7 +115,7 @@ class LoansFrame(ctk.CTkFrame):
         self.fecha_devolucion_label = ctk.CTkLabel(self.info_frame, text="", text_color="white")
         self.fecha_devolucion_label.pack(pady=5)
         self.actualizar_fecha_devolucion() # Llamada inicial
-        
+
         # Vincular evento al spinbox
         self.dias_spinbox.bind("<KeyRelease>", lambda event: self.actualizar_fecha_devolucion())
         
@@ -176,39 +176,43 @@ class LoansFrame(ctk.CTkFrame):
         except (ValueError, TypeError):
             self.fecha_devolucion_label.configure(text="📅 Ingrese un número de días válido")
 
-    def buscar_ejemplar_on_typing(self, event):
-        """Busca un ejemplar por código y actualiza la UI."""
-        codigo = self.ejemplar_entry.get().strip()
-        self.ejemplar_encontrado_id = None
+    def seleccionar_ejemplar(self, ejemplar, titulo_libro):
+        """Maneja la selección de un ejemplar de la lista de sugerencias."""
+        self.ejemplar_entry.delete(0, 'end')
+        self.ejemplar_entry.insert(0, f"{ejemplar.codigo_ejemplar} - {titulo_libro}")
+        self.ejemplar_encontrado_id = ejemplar.id
+        self.sugerencias_ejemplar_frame.grid_remove()
 
-        if not codigo:
-            self.info_ejemplar_label.configure(text="", text_color="gray")
+    def buscar_ejemplar_on_typing(self, event):
+        """Filtra y muestra sugerencias de ejemplares."""
+        termino = self.ejemplar_entry.get().strip()
+
+        for widget in self.sugerencias_ejemplar_frame.winfo_children():
+            widget.destroy()
+
+        if not termino:
+            self.sugerencias_ejemplar_frame.grid_remove()
+            self.ejemplar_encontrado_id = None
             return
 
         try:
-            ejemplar = self.gestor.get_ejemplar_por_codigo(codigo)
+            sugerencias = self.gestor.buscar_ejemplares_disponibles(termino)
 
-            if ejemplar:
-                if ejemplar.estado == 'disponible':
-                    libro = self.gestor.db.get_libro_por_id(ejemplar.libro_id)
-                    self.info_ejemplar_label.configure(
-                        text=f"✅ {libro.titulo}",
-                        text_color="green"
-                    )
-                    self.ejemplar_encontrado_id = ejemplar.id
-                else:
-                    self.info_ejemplar_label.configure(
-                        text=f"❌ No disponible (Estado: {ejemplar.estado})",
-                        text_color="orange"
-                    )
+            if sugerencias:
+                self.sugerencias_ejemplar_frame.grid(row=4, column=1, padx=10, pady=0, sticky="ew")
+                for ejemplar, titulo_libro in sugerencias:
+                    texto = f"{ejemplar.codigo_ejemplar} - {titulo_libro}"
+                    ctk.CTkButton(
+                        self.sugerencias_ejemplar_frame,
+                        text=texto,
+                        command=lambda e=ejemplar, t=titulo_libro: self.seleccionar_ejemplar(e, t),
+                        anchor="w"
+                    ).pack(fill="x", padx=2, pady=2)
             else:
-                self.info_ejemplar_label.configure(
-                    text="❌ Ejemplar no encontrado",
-                    text_color="red"
-                )
+                self.sugerencias_ejemplar_frame.grid_remove()
+                self.ejemplar_encontrado_id = None
         except Exception as e:
-            self.info_ejemplar_label.configure(text="Error en la búsqueda", text_color="red")
-            print(f"Error buscando ejemplar: {e}")
+            print(f"Error buscando ejemplares: {e}")
 
     def crear_prestamo(self):
         """Crea un nuevo préstamo."""
@@ -246,7 +250,6 @@ class LoansFrame(ctk.CTkFrame):
         self.usuario_seleccionado_id = None
         self.sugerencias_frame.grid_remove()
         self.ejemplar_entry.delete(0, 'end')
-        self.info_ejemplar_label.configure(text="")
         self.ejemplar_encontrado_id = None
         self.dias_spinbox.delete(0, 'end')
         self.dias_spinbox.insert(0, "15")

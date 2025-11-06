@@ -61,16 +61,21 @@ class DBManager:
         # Cláusula WHERE
         where_clauses = []
         if termino:
-            termino_like = f"%{termino}%"
-            where_clauses.append("""
-                (LOWER(l.titulo) LIKE LOWER(?)
-                 OR LOWER(l.codigo) LIKE LOWER(?)
-                 OR LOWER(l.isbn) LIKE LOWER(?)
-                 OR LOWER(a.nombre) LIKE LOWER(?)
-                 OR LOWER(a.apellido) LIKE LOWER(?)
-                 OR LOWER(a.nombre || ' ' || a.apellido) LIKE LOWER(?))
-            """)
-            params.extend([termino_like] * 6)
+            # Si el término es un número, buscar solo por código
+            if termino.isdigit():
+                where_clauses.append("LOWER(l.codigo) = LOWER(?)")
+                params.append(termino)
+            else:
+                termino_like = f"%{termino}%"
+                where_clauses.append("""
+                    (LOWER(l.titulo) LIKE LOWER(?)
+                     OR LOWER(l.codigo) LIKE LOWER(?)
+                     OR LOWER(l.isbn) LIKE LOWER(?)
+                     OR LOWER(a.nombre) LIKE LOWER(?)
+                     OR LOWER(a.apellido) LIKE LOWER(?)
+                     OR LOWER(a.nombre || ' ' || a.apellido) LIKE LOWER(?))
+                """)
+                params.extend([termino_like] * 6)
 
         if estanteria_id:
             where_clauses.append("l.estanteria_id = ?")
@@ -577,6 +582,37 @@ class DBManager:
         return [Ejemplar(row['id'], row['libro_id'], row['codigo_ejemplar'], 
                         row['estado'], row['observaciones'], row['fecha_adquisicion'], 
                         row['ubicacion_fisica']) for row in cursor.fetchall()]
+
+    def buscar_ejemplares_disponibles(self, termino: str) -> List[Tuple[Ejemplar, str]]:
+        """
+        Busca ejemplares disponibles por código de ejemplar o título de libro.
+        Devuelve una lista de tuplas (Ejemplar, titulo_libro).
+        """
+        cursor = self.conn.cursor()
+        termino_like = f"%{termino}%"
+
+        cursor.execute("""
+            SELECT e.*, l.titulo as libro_titulo
+            FROM ejemplares e
+            JOIN libros l ON e.libro_id = l.id
+            WHERE e.estado = 'disponible' AND (
+                LOWER(e.codigo_ejemplar) LIKE LOWER(?) OR
+                LOWER(l.titulo) LIKE LOWER(?)
+            )
+            ORDER BY l.titulo, e.codigo_ejemplar
+            LIMIT 10
+        """, (termino_like, termino_like))
+
+        resultados = []
+        for row in cursor.fetchall():
+            ejemplar = Ejemplar(
+                id=row['id'], libro_id=row['libro_id'], codigo_ejemplar=row['codigo_ejemplar'],
+                estado=row['estado'], observaciones=row['observaciones'],
+                fecha_adquisicion=row['fecha_adquisicion'], ubicacion_fisica=row['ubicacion_fisica']
+            )
+            resultados.append((ejemplar, row['libro_titulo']))
+
+        return resultados
 
     def get_ejemplares_disponibles(self) -> List[Ejemplar]:
         cursor = self.conn.cursor()

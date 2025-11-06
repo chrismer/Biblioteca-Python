@@ -178,6 +178,10 @@ class GestorBiblioteca:
         """Busca un ejemplar por su código."""
         return self.db.get_ejemplar_por_codigo(codigo)
 
+    def buscar_ejemplares_disponibles(self, termino: str) -> List[tuple]:
+        """Busca ejemplares disponibles por término."""
+        return self.db.buscar_ejemplares_disponibles(termino)
+
     def get_ejemplares_disponibles(self) -> List[Ejemplar]:
         return self.db.get_ejemplares_disponibles()
 
