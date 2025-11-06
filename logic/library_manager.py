@@ -174,6 +174,10 @@ class GestorBiblioteca:
     def get_ejemplares_por_libro(self, libro_id: int) -> List[Ejemplar]:
         return self.db.get_ejemplares_por_libro(libro_id)
 
+    def get_ejemplar_por_codigo(self, codigo: str) -> Optional[Ejemplar]:
+        """Busca un ejemplar por su código."""
+        return self.db.get_ejemplar_por_codigo(codigo)
+
     def get_ejemplares_disponibles(self) -> List[Ejemplar]:
         return self.db.get_ejemplares_disponibles()
 

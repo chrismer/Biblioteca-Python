@@ -68,10 +68,9 @@ class DBManager:
                  OR LOWER(l.isbn) LIKE LOWER(?)
                  OR LOWER(a.nombre) LIKE LOWER(?)
                  OR LOWER(a.apellido) LIKE LOWER(?)
-                 OR LOWER(a.nombre || ' ' || a.apellido) LIKE LOWER(?)
-                 OR LOWER(l.editorial) LIKE LOWER(?))
+                 OR LOWER(a.nombre || ' ' || a.apellido) LIKE LOWER(?))
             """)
-            params.extend([termino_like] * 7)
+            params.extend([termino_like] * 6)
 
         if estanteria_id:
             where_clauses.append("l.estanteria_id = ?")
@@ -556,6 +555,19 @@ class DBManager:
             return Ejemplar(row['id'], row['libro_id'], row['codigo_ejemplar'], 
                           row['estado'], row['observaciones'], row['fecha_adquisicion'], 
                           row['ubicacion_fisica'])
+        return None
+
+    def get_ejemplar_por_codigo(self, codigo_ejemplar: str) -> Optional[Ejemplar]:
+        """Busca un ejemplar específico por su código único."""
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT * FROM ejemplares WHERE codigo_ejemplar = ?", (codigo_ejemplar,))
+        row = cursor.fetchone()
+        if row:
+            return Ejemplar(
+                id=row['id'], libro_id=row['libro_id'], codigo_ejemplar=row['codigo_ejemplar'],
+                estado=row['estado'], observaciones=row['observaciones'],
+                fecha_adquisicion=row['fecha_adquisicion'], ubicacion_fisica=row['ubicacion_fisica']
+            )
         return None
 
     def get_ejemplares_por_libro(self, libro_id: int) -> List[Ejemplar]:
