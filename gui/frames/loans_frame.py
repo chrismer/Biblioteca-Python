@@ -83,7 +83,7 @@ class LoansFrame(ctk.CTkFrame):
         ctk.CTkLabel(form_frame, text="Ejemplar *").grid(row=1, column=0, padx=10, pady=5, sticky="w")
         
         ejemplar_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
-        ejemplar_frame.grid(row=3, column=1, padx=10, pady=5, sticky="w")
+        ejemplar_frame.grid(row=1, column=1, padx=10, pady=5, sticky="w")
 
         self.ejemplar_entry = ctk.CTkEntry(ejemplar_frame, placeholder_text="Buscar por código o título...", width=300)
         self.ejemplar_entry.pack(side="left")

@@ -63,8 +63,8 @@ class DBManager:
         if termino:
             # Si el término es un número, buscar solo por código
             if termino.isdigit():
-                where_clauses.append("LOWER(l.codigo) = LOWER(?)")
-                params.append(termino)
+                where_clauses.append("LOWER(l.codigo) LIKE LOWER(?)")
+                params.append(f"%{termino}%")
             else:
                 termino_like = f"%{termino}%"
                 where_clauses.append("""
