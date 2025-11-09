@@ -82,10 +82,10 @@ class LoansFrame(ctk.CTkFrame):
         # Búsqueda de ejemplar
         ctk.CTkLabel(form_frame, text="Ejemplar *").grid(row=1, column=0, padx=10, pady=5, sticky="w")
         
-        ejemplar_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
-        ejemplar_frame.grid(row=1, column=1, padx=10, pady=5, sticky="w")
+        self.ejemplar_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        self.ejemplar_frame.grid(row=1, column=1, padx=10, pady=5, sticky="w")
 
-        self.ejemplar_entry = ctk.CTkEntry(ejemplar_frame, placeholder_text="Buscar por código o título...", width=300)
+        self.ejemplar_entry = ctk.CTkEntry(self.ejemplar_frame, placeholder_text="Buscar por código o título...", width=300)
         self.ejemplar_entry.pack(side="left")
 
         self.sugerencias_ejemplar_frame = ctk.CTkScrollableFrame(form_frame, width=280, height=100)
@@ -204,11 +204,11 @@ class LoansFrame(ctk.CTkFrame):
             sugerencias = self.gestor.buscar_ejemplares_disponibles(termino)
 
             if sugerencias:
-                entry_x = self.ejemplar_entry.winfo_x()
-                entry_y = self.ejemplar_entry.winfo_y()
+                frame_x = self.ejemplar_frame.winfo_x()
+                frame_y = self.ejemplar_frame.winfo_y()
                 entry_height = self.ejemplar_entry.winfo_height()
 
-                self.sugerencias_ejemplar_frame.place(x=entry_x, y=entry_y + entry_height)
+                self.sugerencias_ejemplar_frame.place(x=frame_x, y=frame_y + entry_height)
                 self.sugerencias_ejemplar_frame.lift()
 
                 for ejemplar, titulo_libro in sugerencias:
