@@ -133,25 +133,30 @@ class LoansFrame(ctk.CTkFrame):
         self.usuario_entry.delete(0, 'end')
         self.usuario_entry.insert(0, f"{usuario.id} - {usuario.nombre}")
         self.usuario_seleccionado_id = usuario.id
-        self.sugerencias_frame.grid_remove()
+        self.sugerencias_frame.place_forget()
 
     def actualizar_sugerencias_usuario(self, event):
         """Filtra y muestra las sugerencias de usuarios según el texto de entrada."""
         termino = self.usuario_entry.get().lower()
 
-        # Limpiar sugerencias anteriores
         for widget in self.sugerencias_frame.winfo_children():
             widget.destroy()
 
         if not termino:
-            self.sugerencias_frame.grid_remove()
+            self.sugerencias_frame.place_forget()
             self.usuario_seleccionado_id = None
             return
 
         sugerencias = [u for u in self.usuarios_cache if termino in u.nombre.lower()]
 
         if sugerencias:
-            self.sugerencias_frame.grid(row=2, column=1, padx=10, pady=0, sticky="ew")
+            entry_x = self.usuario_entry.winfo_x()
+            entry_y = self.usuario_entry.winfo_y()
+            entry_height = self.usuario_entry.winfo_height()
+
+            self.sugerencias_frame.place(x=entry_x, y=entry_y + entry_height)
+            self.sugerencias_frame.lift()
+
             for usuario in sugerencias:
                 texto = f"{usuario.id} - {usuario.nombre}"
                 ctk.CTkButton(
@@ -161,7 +166,7 @@ class LoansFrame(ctk.CTkFrame):
                     anchor="w"
                 ).pack(fill="x", padx=2, pady=2)
         else:
-            self.sugerencias_frame.grid_remove()
+            self.sugerencias_frame.place_forget()
             self.usuario_seleccionado_id = None
 
     def actualizar_fecha_devolucion(self):
@@ -181,7 +186,7 @@ class LoansFrame(ctk.CTkFrame):
         self.ejemplar_entry.delete(0, 'end')
         self.ejemplar_entry.insert(0, f"{ejemplar.codigo_ejemplar} - {titulo_libro}")
         self.ejemplar_encontrado_id = ejemplar.id
-        self.sugerencias_ejemplar_frame.grid_remove()
+        self.sugerencias_ejemplar_frame.place_forget()
 
     def buscar_ejemplar_on_typing(self, event):
         """Filtra y muestra sugerencias de ejemplares."""
@@ -191,7 +196,7 @@ class LoansFrame(ctk.CTkFrame):
             widget.destroy()
 
         if not termino:
-            self.sugerencias_ejemplar_frame.grid_remove()
+            self.sugerencias_ejemplar_frame.place_forget()
             self.ejemplar_encontrado_id = None
             return
 
@@ -199,7 +204,13 @@ class LoansFrame(ctk.CTkFrame):
             sugerencias = self.gestor.buscar_ejemplares_disponibles(termino)
 
             if sugerencias:
-                self.sugerencias_ejemplar_frame.grid(row=4, column=1, padx=10, pady=0, sticky="ew")
+                entry_x = self.ejemplar_entry.winfo_x()
+                entry_y = self.ejemplar_entry.winfo_y()
+                entry_height = self.ejemplar_entry.winfo_height()
+
+                self.sugerencias_ejemplar_frame.place(x=entry_x, y=entry_y + entry_height)
+                self.sugerencias_ejemplar_frame.lift()
+
                 for ejemplar, titulo_libro in sugerencias:
                     texto = f"{ejemplar.codigo_ejemplar} - {titulo_libro}"
                     ctk.CTkButton(
@@ -209,7 +220,7 @@ class LoansFrame(ctk.CTkFrame):
                         anchor="w"
                     ).pack(fill="x", padx=2, pady=2)
             else:
-                self.sugerencias_ejemplar_frame.grid_remove()
+                self.sugerencias_ejemplar_frame.place_forget()
                 self.ejemplar_encontrado_id = None
         except Exception as e:
             print(f"Error buscando ejemplares: {e}")
