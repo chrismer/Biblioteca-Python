@@ -7,5 +7,4 @@ if TYPE_CHECKING:
 
 class AddBookFrame(BookFormFrame):
     def __init__(self, master: 'App', gestor: 'GestorBiblioteca'):
-        # Llama al constructor del formulario base en modo "Añadir" (sin pasarle un libro)
         super().__init__(master, gestor, libro=None)

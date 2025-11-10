@@ -493,6 +493,119 @@ class LoansFrame(ctk.CTkFrame):
         ctk.CTkLabel(self.content_frame, text="📊 Historial de Préstamos", 
                     font=("Arial", 16, "bold")).pack(pady=10)
         
+        # Frame para filtros
+        filtros_frame = ctk.CTkFrame(self.content_frame)
+        filtros_frame.pack(pady=10, padx=20, fill="x")
         
-        ctk.CTkLabel(self.content_frame, text="Funcionalidad en desarrollo...\n\nAquí se mostrará el historial completo de préstamos con filtros avanzados.", 
-                    fg_color="blue").pack(pady=50)
+        ctk.CTkLabel(filtros_frame, text="Filtrar por:").pack(side="left", padx=10)
+        
+        # Variable para el filtro
+        self.filtro_historial = ctk.StringVar(value="todos")
+        
+        ctk.CTkRadioButton(filtros_frame, text="Todos", variable=self.filtro_historial, 
+                          value="todos", command=self.actualizar_historial).pack(side="left", padx=5)
+        ctk.CTkRadioButton(filtros_frame, text="Solo Devueltos", variable=self.filtro_historial, 
+                          value="devueltos", command=self.actualizar_historial).pack(side="left", padx=5)
+        ctk.CTkRadioButton(filtros_frame, text="Solo Activos", variable=self.filtro_historial, 
+                          value="activos", command=self.actualizar_historial).pack(side="left", padx=5)
+        
+        # Frame para la tabla
+        self.historial_scroll_frame = ctk.CTkScrollableFrame(self.content_frame)
+        self.historial_scroll_frame.pack(pady=10, padx=10, fill="both", expand=True)
+        
+        # Cargar historial inicial
+        self.actualizar_historial()
+
+    def actualizar_historial(self):
+        """Actualiza la tabla de historial según el filtro seleccionado."""
+        # Limpiar tabla
+        for widget in self.historial_scroll_frame.winfo_children():
+            widget.destroy()
+        
+        try:
+            filtro = self.filtro_historial.get()
+            
+            # Obtener préstamos según filtro
+            if filtro == "devueltos":
+                prestamos = self.gestor.get_historial_prestamos(limite=100, solo_devueltos=True)
+            elif filtro == "activos":
+                prestamos = self.gestor.get_prestamos_activos()
+            else:  # todos
+                prestamos = self.gestor.get_historial_prestamos(limite=100)
+            
+            if not prestamos:
+                ctk.CTkLabel(self.historial_scroll_frame, 
+                            text="No hay préstamos en el historial.", 
+                            fg_color="blue").pack(pady=20)
+                return
+            
+            # Información de resultados
+            info_frame = ctk.CTkFrame(self.historial_scroll_frame, fg_color="#E3F2FD")
+            info_frame.grid(row=0, column=0, columnspan=8, sticky="ew", pady=(0, 10))
+            ctk.CTkLabel(info_frame, 
+                        text=f"📊 Mostrando {len(prestamos)} préstamos",
+                        font=("Arial", 11, "bold")).pack(pady=5)
+            
+            # Encabezados
+            headers = ["ID", "Usuario", "Ejemplar", "Libro", "Fecha Préstamo", 
+                      "Fecha Devolución", "Estado", "Días"]
+            for i, header in enumerate(headers):
+                ctk.CTkLabel(self.historial_scroll_frame, text=header, 
+                            font=("Arial", 11, "bold")).grid(
+                    row=1, column=i, padx=5, pady=5, sticky="w")
+            
+            # Datos de préstamos
+            for row_num, prestamo in enumerate(prestamos, start=2):
+                # Obtener información adicional
+                usuario = self.gestor.get_usuario(prestamo.usuario_id)
+                ejemplar = self.gestor.db.get_ejemplar(prestamo.ejemplar_id)
+                
+                # Obtener información del libro
+                libro_titulo = "N/A"
+                if ejemplar:
+                    libro = self.gestor.db.get_libro_por_id(ejemplar.libro_id)
+                    if libro:
+                        libro_titulo = libro.titulo
+                
+                # Calcular días
+                if prestamo.estado == 'devuelto' and prestamo.fecha_devolucion_real:
+                    dias = (prestamo.fecha_devolucion_real - prestamo.fecha_prestamo).days
+                    dias_text = f"{dias} días"
+                else:
+                    dias = (date.today() - prestamo.fecha_prestamo).days
+                    dias_text = f"{dias} días (activo)"
+                
+                # Fecha de devolución
+                fecha_dev = prestamo.fecha_devolucion_real if prestamo.fecha_devolucion_real else prestamo.fecha_devolucion_esperada
+                
+                # Estado con color
+                if prestamo.estado == 'devuelto':
+                    estado_text = "✅ Devuelto"
+                    estado_color = "green"
+                elif prestamo.esta_vencido:
+                    estado_text = "⚠️ Vencido"
+                    estado_color = "red"
+                else:
+                    estado_text = "🔄 Activo"
+                    estado_color = "blue"
+                
+                # Mostrar datos
+                ctk.CTkLabel(self.historial_scroll_frame, text=str(prestamo.id)).grid(
+                    row=row_num, column=0, padx=5, pady=2)
+                ctk.CTkLabel(self.historial_scroll_frame, text=usuario.nombre if usuario else "N/A").grid(
+                    row=row_num, column=1, padx=5, pady=2)
+                ctk.CTkLabel(self.historial_scroll_frame, text=ejemplar.codigo_ejemplar if ejemplar else "N/A").grid(
+                    row=row_num, column=2, padx=5, pady=2)
+                ctk.CTkLabel(self.historial_scroll_frame, text=libro_titulo, wraplength=150).grid(
+                    row=row_num, column=3, padx=5, pady=2)
+                ctk.CTkLabel(self.historial_scroll_frame, text=str(prestamo.fecha_prestamo)).grid(
+                    row=row_num, column=4, padx=5, pady=2)
+                ctk.CTkLabel(self.historial_scroll_frame, text=str(fecha_dev)).grid(
+                    row=row_num, column=5, padx=5, pady=2)
+                ctk.CTkLabel(self.historial_scroll_frame, text=estado_text, text_color=estado_color).grid(
+                    row=row_num, column=6, padx=5, pady=2)
+                ctk.CTkLabel(self.historial_scroll_frame, text=dias_text).grid(
+                    row=row_num, column=7, padx=5, pady=2)
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al cargar historial: {str(e)}")

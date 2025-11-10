@@ -255,6 +255,41 @@ class DBManager:
                 raise ValueError(f"No se encontró estantería con id {id}")
         self.execute_transaction(_delete)
 
+    def modificar_estanteria(self, id: int, nombre: str, capacidad: int):
+        """Modifica una estantería existente."""
+        def _update(cursor):
+            # Verificar que la estantería existe
+            cursor.execute("SELECT * FROM estanterias WHERE id = ?", (id,))
+            if not cursor.fetchone():
+                raise ValueError(f"No se encontró estantería con id {id}")
+            
+            # Verificar que la nueva capacidad no sea menor a los ejemplares actuales
+            cursor.execute("""
+                SELECT COUNT(e.id) 
+                FROM ejemplares e 
+                JOIN libros l ON e.libro_id = l.id 
+                WHERE l.estanteria_id = ?
+            """, (id,))
+            ejemplares_actuales = cursor.fetchone()[0]
+            
+            if capacidad < ejemplares_actuales:
+                raise ValueError(
+                    f"La capacidad no puede ser menor a {ejemplares_actuales} "
+                    f"(ejemplares actualmente en la estantería)"
+                )
+            
+            # Actualizar estantería
+            cursor.execute("""
+                UPDATE estanterias 
+                SET nombre = ?, capacidad = ? 
+                WHERE id = ?
+            """, (nombre, capacidad, id))
+            
+            if cursor.rowcount == 0:
+                raise ValueError(f"No se pudo actualizar la estantería con id {id}")
+        
+        self.execute_transaction(_update)
+
     def get_libro_por_codigo(self, codigo: str) -> Optional[Libro]:
         cursor = self.conn.cursor()
         cursor.execute("SELECT * FROM libros WHERE codigo = ?", (codigo,))
@@ -725,6 +760,31 @@ class DBManager:
                       (usuario_id,))
         return [self._crear_prestamo_from_row(row) for row in cursor.fetchall()]
 
+    def get_todos_prestamos(self, limite: Optional[int] = None, solo_devueltos: bool = False) -> List[Prestamo]:
+        """
+        Obtiene el historial completo de préstamos.
+        
+        Args:
+            limite: Número máximo de resultados (None = todos)
+            solo_devueltos: Si True, solo muestra préstamos devueltos
+        
+        Returns:
+            Lista de préstamos ordenados por fecha (más recientes primero)
+        """
+        cursor = self.conn.cursor()
+        
+        sql = "SELECT * FROM prestamos"
+        
+        if solo_devueltos:
+            sql += " WHERE estado = 'devuelto'"
+        
+        sql += " ORDER BY fecha_prestamo DESC"
+        
+        if limite:
+            sql += f" LIMIT {limite}"
+        
+        cursor.execute(sql)
+        return [self._crear_prestamo_from_row(row) for row in cursor.fetchall()]
 
     def get_libro_por_id(self, libro_id: int) -> Optional[Libro]:
         """Obtiene un libro por su ID con datos relacionados."""

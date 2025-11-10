@@ -30,6 +30,7 @@ class BookFormFrame(BaseFrame):
 
         self.estanterias = self.gestor.get_todas_estanterias()
         self.selected_shelf_id = ctk.StringVar()
+        self.capacidad_info_label = None  # Para mostrar capacidad disponible
 
         # --- Campos del formulario ---
         ctk.CTkLabel(form_frame, text="Código *").grid(row=1, column=0, padx=10, pady=5, sticky="e")
@@ -52,15 +53,37 @@ class BookFormFrame(BaseFrame):
         self.anio_entry = ctk.CTkEntry(form_frame, placeholder_text="Ej: 1967")
         self.anio_entry.grid(row=5, column=1, padx=10, pady=5, sticky="ew")
 
+        # Estanterías
+        ctk.CTkLabel(form_frame, text="Estanteria *").grid(row=6, column=0, padx=10, pady=5, sticky="e")
         shelf_names = [e.nombre for e in self.estanterias] if self.estanterias else ["No hay estanterías"]
-        self.shelf_menu = ctk.CTkOptionMenu(form_frame, variable=self.selected_shelf_id, values=shelf_names)
+        self.shelf_menu = ctk.CTkOptionMenu(
+            form_frame, 
+            variable=self.selected_shelf_id, 
+            values=shelf_names,
+            command=self.actualizar_capacidad_disponible  # Callback cuando cambia
+        )
         self.shelf_menu.grid(row=6, column=1, padx=10, pady=5, sticky="ew")
 
         # --- Campos que solo se muestran en modo 'Añadir' ---
         if not self.is_edit_mode:
-            ctk.CTkLabel(form_frame, text="Cantidad de Ejemplares *").grid(row=7, column=0, padx=10, pady=5, sticky="e")
+            # Label informativo de capacidad debajo del dropdown
+            self.capacidad_info_label = ctk.CTkLabel(
+                form_frame, 
+                text="", 
+                font=("Segoe UI", 10, "italic"),
+                text_color=self.colors['warning'],
+                anchor="w"
+            )
+            self.capacidad_info_label.grid(row=7, column=1, padx=10, pady=(0, 10), sticky="ew")
+            
+            ctk.CTkLabel(form_frame, text="Cantidad de Ejemplares *").grid(row=8, column=0, padx=10, pady=5, sticky="e")
             self.cantidad_entry = ctk.CTkEntry(form_frame, placeholder_text="Ej: 3")
-            self.cantidad_entry.grid(row=7, column=1, padx=10, pady=5, sticky="ew")
+            self.cantidad_entry.grid(row=8, column=1, padx=10, pady=5, sticky="ew")
+            
+            # Actualizar capacidad disponible al iniciar
+            if self.estanterias:
+                self.selected_shelf_id.set(self.estanterias[0].nombre)
+                self.actualizar_capacidad_disponible(self.estanterias[0].nombre)
 
         # --- Botones de acción ---
         button_frame = ctk.CTkFrame(self.content_frame, fg_color="transparent")
@@ -114,6 +137,20 @@ class BookFormFrame(BaseFrame):
 
         if not all([codigo, titulo, autor_nombre, autor_apellido, anio, cantidad, shelf_id]):
             raise ValueError("Todos los campos con * son obligatorios.")
+        
+        # Validación adicional de capacidad
+        estanteria = next((e for e in self.estanterias if e.id == shelf_id), None)
+        if estanteria:
+            ocupados = self.gestor.get_count_ejemplares_en_estanteria(shelf_id)
+            disponibles = estanteria.capacidad - ocupados
+            
+            if cantidad > disponibles:
+                raise ValueError(
+                    f"No hay suficiente espacio en la estantería '{estanteria.nombre}'.\n\n"
+                    f"📊 Espacios disponibles: {disponibles}\n"
+                    f"📦 Intentando agregar: {cantidad}\n\n"
+                    f"Por favor, reduce la cantidad de ejemplares o elige otra estantería."
+                )
 
         self.gestor.agregar_libro_simple(
             codigo=codigo, titulo=titulo, autor_nombre=autor_nombre, autor_apellido=autor_apellido,
@@ -145,6 +182,37 @@ class BookFormFrame(BaseFrame):
         self.gestor.modificar_libro_completo(self.libro.id, datos_nuevos)
         messagebox.showinfo("Éxito", f"Libro '{titulo}' actualizado correctamente.")
         self._go_to_main_frame()
+
+    def actualizar_capacidad_disponible(self, shelf_name: str):
+        """Actualiza el label con la capacidad disponible de la estantería seleccionada."""
+        if self.is_edit_mode or not self.capacidad_info_label:
+            return
+        
+        try:
+            # Buscar la estantería seleccionada
+            estanteria = next((e for e in self.estanterias if e.nombre == shelf_name), None)
+            
+            if not estanteria:
+                self.capacidad_info_label.configure(text="")
+                return
+            
+            # Obtener ejemplares ocupados
+            ocupados = self.gestor.get_count_ejemplares_en_estanteria(estanteria.id)
+            disponibles = estanteria.capacidad - ocupados
+            
+            # Actualizar label con información
+            if disponibles > 0:
+                self.capacidad_info_label.configure(
+                    text=f"📊 Capacidad disponible: {disponibles} ejemplares (máximo a agregar)",
+                    text_color=self.colors['success']
+                )
+            else:
+                self.capacidad_info_label.configure(
+                    text=f"⚠️ Estantería llena (0 espacios disponibles)",
+                    text_color=self.colors['danger']
+                )
+        except Exception as e:
+            self.capacidad_info_label.configure(text="")
 
     def _go_to_main_frame(self):
         """Navega al MainFrame, usando una importación local para evitar ciclos."""

@@ -31,6 +31,32 @@ class GestorBiblioteca:
     def eliminar_estanteria(self, id: int) -> None:
         self.db.eliminar_estanteria(id)
     
+    def modificar_estanteria(self, id: int, nombre: str, capacidad: int) -> None:
+        """
+        Modifica una estantería existente.
+        
+        Args:
+            id: ID de la estantería a modificar
+            nombre: Nuevo nombre
+            capacidad: Nueva capacidad
+        
+        Raises:
+            ValueError: Si los datos son inválidos o la capacidad es menor a los ejemplares actuales
+        """
+        if not isinstance(nombre, str) or not nombre.strip():
+            raise ValueError("Nombre debe ser un string no vacío")
+        if not isinstance(capacidad, int) or capacidad < 1:
+            raise ValueError("Capacidad debe ser un entero positivo")
+        if capacidad > 150:
+            raise ValueError("Capacidad máxima permitida: 150 ejemplares por estantería")
+        
+        try:
+            self.db.modificar_estanteria(id, nombre, capacidad)
+        except Exception as e:
+            if "UNIQUE constraint failed" in str(e):
+                raise ValueError(f"Ya existe una estantería con el nombre '{nombre}'")
+            raise e
+    
     def get_todas_estanterias(self) -> List[Estanteria]:
         """Obtiene todas las estanterías."""
         return self.db.get_todas_las_estanterias()
@@ -224,6 +250,10 @@ class GestorBiblioteca:
     def get_prestamos_usuario(self, usuario_id: int) -> List[Prestamo]:
         return self.db.get_prestamos_por_usuario(usuario_id)
 
+    def get_historial_prestamos(self, limite: Optional[int] = None, solo_devueltos: bool = False) -> List[Prestamo]:
+        """Obtiene el historial completo de préstamos."""
+        return self.db.get_todos_prestamos(limite, solo_devueltos)
+
     # ============ FUNCIONES DE COMPATIBILIDAD  ============
     def _find_or_create_autor(self, nombre: str, apellido: str) -> Autor:
         """Busca un autor por nombre y apellido, o lo crea si no existe."""
@@ -287,11 +317,20 @@ class GestorBiblioteca:
             )
         except Exception as e:
             # Re-lanzar errores de unicidad con mensajes amigables
-            if "UNIQUE constraint failed" in str(e):
-                if "libros.codigo" in str(e):
+            error_msg = str(e)
+            if "UNIQUE constraint failed" in error_msg:
+                if "libros.codigo" in error_msg:
                     raise ValueError(f"Ya existe un libro con el código '{codigo}'")
-                if "libros.isbn" in str(e):
+                if "libros.isbn" in error_msg:
                     raise ValueError(f"Ya existe un libro con el ISBN '{isbn}'")
+                if "ejemplares.codigo_ejemplar" in error_msg:
+                    raise ValueError(
+                        f"Error: Ya existen ejemplares con el código '{codigo}' en la base de datos.\n\n"
+                        f"Esto puede ocurrir si:\n"
+                        f"• Eliminaste un libro pero quedaron ejemplares huérfanos\n"
+                        f"• Ya existe un libro con este código\n\n"
+                        f"Solución: Usa un código diferente (ej: '{codigo}v2', '{codigo}_nuevo')"
+                    )
             raise e
 
     # ============ FUNCIONES DE REPORTES ============
