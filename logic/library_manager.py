@@ -21,36 +21,12 @@ class GestorBiblioteca:
         if capacidad > 150:
             raise ValueError("Capacidad máxima permitida: 150 ejemplares por estantería")
         
-        # Validar que no exista otra estantería con el mismo nombre
-        estanterias_existentes = self.db.get_todas_las_estanterias()
-        for estanteria in estanterias_existentes:
-            if estanteria.nombre.lower().strip() == nombre.lower().strip():
-                raise ValueError(f"Ya existe una estantería con el nombre '{nombre}'")
-        
         try:
             return self.db.insertar_estanteria(nombre, capacidad)
         except Exception as e:
             if "UNIQUE constraint failed" in str(e):
                 raise ValueError(f"Ya existe una estantería con el nombre '{nombre}'")
             raise e
-
-    def modificar_estanteria(self, id: int, nombre: Optional[str] = None, capacidad: Optional[int] = None) -> None:
-        estanteria = self.db.get_estanteria(id)
-        if not estanteria:
-            raise ValueError(f"No se encontró estantería con id {id}")
-        if nombre is not None:
-            if not isinstance(nombre, str) or not nombre.strip():
-                raise ValueError("Nombre debe ser un string no vacío")
-            estanteria.nombre = nombre
-        if capacidad is not None:
-            if not isinstance(capacidad, int) or capacidad < self.get_count_ejemplares_en_estanteria(id):
-                raise ValueError("Capacidad debe ser >= libros asignados")
-            if capacidad > 150:
-                raise ValueError("Capacidad máxima permitida: 150 ejemplares por estantería")
-            estanteria.capacidad = capacidad
-        def _update(cursor):
-            cursor.execute("UPDATE estanterias SET nombre = ?, capacidad = ? WHERE id = ?", (estanteria.nombre, estanteria.capacidad, id))
-        self.db.execute_transaction(_update)
 
     def eliminar_estanteria(self, id: int) -> None:
         self.db.eliminar_estanteria(id)

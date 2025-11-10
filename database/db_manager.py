@@ -237,20 +237,6 @@ class DBManager:
         )''')
         self.conn.commit()
 
-    def insertar_libro(self, libro: Libro) -> int:
-        def _insert(cursor):
-            cursor.execute("SELECT COUNT(*) FROM libros WHERE estanteria_id = ?", (libro.estanteria_id,))
-            count = cursor.fetchone()[0]
-            cursor.execute("SELECT capacidad FROM estanterias WHERE id = ?", (libro.estanteria_id,))
-            capacidad = cursor.fetchone()[0]
-            if count >= capacidad:
-                raise EstanteriaLlenaError(f"Estantería {libro.estanteria_id} llena.")
-            cursor.execute('''INSERT INTO libros (codigo, titulo, autor, anio, cantidad_total, cantidad_prestados, historial_prestamos, estanteria_id)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
-                          (libro.codigo, libro.titulo, libro.autor, libro.anio, libro.cantidad_total, libro.cantidad_prestados, libro.historial_prestamos, libro.estanteria_id))
-            return cursor.lastrowid
-        return self.execute_transaction(_insert)
-
     def insertar_estanteria(self, nombre: str, capacidad: int) -> int:
         """Inserta una nueva estantería en la base de datos."""
         def _insert(cursor):
