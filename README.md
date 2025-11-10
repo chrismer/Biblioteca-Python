@@ -290,15 +290,6 @@ El proyecto incluye scripts adicionales para tareas de desarrollo y mantenimient
 ### Scripts de Desarrollo y Mantenimiento
 
 - **`update_ubicaciones.py`**: **(Opcional)**. Este script recorre todos los ejemplares de la base de datos y asigna una ubicación física descriptiva (ej: "Estantería A - Nivel 1 - Pos 3") a aquellos que no la tengan. Es útil para mantener la consistencia del catálogo si se han importado datos manualmente o si se usaron versiones antiguas de la aplicación. No es necesario ejecutarlo durante el uso normal de la GUI.
-- **`test_debug.py`**: Script de desarrollo utilizado para probar funciones específicas del backend sin necesidad de iniciar la interfaz gráfica.
-
-### Scripts Obsoletos
-
-Los siguientes scripts han sido movidos a la carpeta `scripts_obsoletos/` ya que no son necesarios en el sistema actual:
-
-- **migrate_to_new_system.py**: Script de migración de esquema antiguo al nuevo (ya no necesario, la base de datos ya está en el nuevo formato).
-
----
 
 ## 📁 Estructura del Proyecto
 
@@ -315,54 +306,11 @@ Biblioteca/
 │   ├── app.py                # Aplicación principal
 │   ├── frames/               # Pantallas/vistas modulares
 │   └── utils/                # Utilidades (diálogos, helpers)
-├── scripts_obsoletos/         # Scripts antiguos (archivados)
 ├── config.ini                # Configuración de la base de datos
 ├── requirements.txt          # Dependencias del proyecto
 ├── init_database.py          # Script de inicialización
 └── README.md                 # Este archivo
 ```
-
----
-
-## 📊 Requisitos Cumplidos
-
-BiblioHub cumple con todos los requisitos especificados para el proyecto. Para más detalles sobre la implementación, consulta la sección de [Arquitectura del Proyecto](#️-arquitectura-del-proyecto).
-
-### ✅ Requisitos Básicos (Verde)
-- ✅ Crear, modificar y eliminar libros
-- ✅ Crear, modificar y eliminar estanterías (solo se eliminan si están vacías)
-- ✅ Prestar y devolver ejemplares de libros
-- ✅ Buscar libros por código, título y autor
-- ✅ Validaciones implementadas:
-  - Nombres de estanterías únicos
-  - Códigos de libros únicos
-  - Los nombres de libros SÍ pueden repetirse
-  - Control de capacidad de estanterías (máximo 150 ejemplares)
-  - No se pueden guardar ejemplares en estanterías llenas
-
-### ✅ Requisitos Intermedios (Naranja)
-- ✅ Mostrar libros disponibles (vista dedicada)
-- ✅ Mostrar libros prestados (vista dedicada)
-- ✅ Mostrar libro más prestado (con estadísticas)
-- ✅ Validación de préstamos: no se puede prestar un libro sin ejemplares disponibles
-- ✅ Interfaz gráfica completa con CustomTkinter:
-  - Diseño moderno con tema oscuro
-  - Navegación intuitiva entre pantallas
-  - Formularios con validación en tiempo real
-  - Diálogos de confirmación personalizados
-  - Búsqueda en tiempo real
-
-### ✅ Requisitos Avanzados (Violeta)
-- ✅ Mover libros entre estanterías:
-  - Interfaz con búsqueda en tiempo real
-  - Mueve el libro con TODOS sus ejemplares
-  - Actualiza automáticamente las ubicaciones físicas descriptivas
-  - Validación de capacidad (impide mover si no hay espacio)
-- ✅ Base de datos SQLite con modelo normalizado:
-  - Separación de libros, autores, géneros, estanterías y ejemplares
-  - Sistema de préstamos con usuarios
-  - Integridad referencial con claves foráneas
-  - Transacciones para garantizar consistencia de datos
 
 ---
 
