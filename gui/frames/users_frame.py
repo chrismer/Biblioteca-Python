@@ -239,7 +239,6 @@ class UsersFrame(ctk.CTkFrame):
         self.entry_buscar.pack(side="left", padx=10, expand=True, fill="x")
         ctk.CTkButton(search_panel, text="Buscar", command=self.buscar_usuario).pack(side="left", padx=10)
         
-        # Nos aseguramos de que el nombre sea 'self.results_panel'
         self.results_panel = ctk.CTkScrollableFrame(self.content_frame)
         self.results_panel.pack(pady=10, padx=10, fill="both", expand=True)
         ctk.CTkLabel(self.results_panel, text="Ingrese un término de búsqueda y presione 'Buscar'").pack(pady=20)

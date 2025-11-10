@@ -62,7 +62,7 @@ def confirmar(titulo: str, mensaje: str, parent=None) -> bool:
     main_frame = ctk.CTkFrame(dialog, fg_color=colors['white'])
     main_frame.pack(fill="both", expand=True, padx=20, pady=20)
     
-    # Icono y título - Header más visible
+    # Icono y título
     header_frame = ctk.CTkFrame(main_frame, fg_color="#1E40AF") 
     header_frame.pack(fill="x", pady=(0, 15))
     
@@ -71,18 +71,16 @@ def confirmar(titulo: str, mensaje: str, parent=None) -> bool:
                 font=("Segoe UI", 18, "bold"),
                 text_color="white").pack(pady=12)
     
-    # Mensaje con más espacio
     ctk.CTkLabel(main_frame, 
                 text=mensaje, 
                 font=("Segoe UI", 13),
                 wraplength=450,
                 justify="center").pack(pady=15)
     
-    # Botones con más espacio
     button_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
     button_frame.pack(pady=15)
     
-    # Configurar grid para centrar
+    # centrar
     button_frame.grid_columnconfigure(0, weight=1)
     button_frame.grid_columnconfigure(1, weight=1)
     
@@ -94,7 +92,7 @@ def confirmar(titulo: str, mensaje: str, parent=None) -> bool:
         result.set(False)
         dialog.destroy()
     
-    # Botón Sí - usando grid en lugar de pack
+    # Botón Sí 
     btn_si = ctk.CTkButton(button_frame,
                            text="✅ Sí",
                            width=140,
@@ -107,7 +105,7 @@ def confirmar(titulo: str, mensaje: str, parent=None) -> bool:
                            command=on_si)
     btn_si.grid(row=0, column=0, padx=10, pady=5)
     
-    # Botón No - usando grid en lugar de pack
+    # Botón No 
     btn_no = ctk.CTkButton(button_frame,
                            text="❌ No",
                            width=140,  

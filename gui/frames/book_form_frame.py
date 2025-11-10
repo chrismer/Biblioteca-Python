@@ -30,7 +30,12 @@ class BookFormFrame(BaseFrame):
 
         self.estanterias = self.gestor.get_todas_estanterias()
         self.selected_shelf_id = ctk.StringVar()
-        self.capacidad_info_label = None  # Para mostrar capacidad disponible
+        self.capacidad_info_label = None
+
+        # Verificar si hay estanterías antes de mostrar el formulario
+        if not self.estanterias and not self.is_edit_mode:
+            self.mostrar_advertencia_sin_estanterias(form_frame)
+            return
 
         # --- Campos del formulario ---
         ctk.CTkLabel(form_frame, text="Código *").grid(row=1, column=0, padx=10, pady=5, sticky="e")
@@ -60,7 +65,7 @@ class BookFormFrame(BaseFrame):
             form_frame, 
             variable=self.selected_shelf_id, 
             values=shelf_names,
-            command=self.actualizar_capacidad_disponible  # Callback cuando cambia
+            command=self.actualizar_capacidad_disponible
         )
         self.shelf_menu.grid(row=6, column=1, padx=10, pady=5, sticky="ew")
 
@@ -98,7 +103,7 @@ class BookFormFrame(BaseFrame):
             return
 
         self.codigo_entry.insert(0, self.libro.codigo)
-        self.codigo_entry.configure(state="disabled") # El código no se puede editar
+        self.codigo_entry.configure(state="disabled")
         self.titulo_entry.insert(0, self.libro.titulo)
 
         if self.libro.autor:
@@ -213,6 +218,60 @@ class BookFormFrame(BaseFrame):
                 )
         except Exception as e:
             self.capacidad_info_label.configure(text="")
+
+    def mostrar_advertencia_sin_estanterias(self, parent_frame):
+        """Muestra una advertencia amigable cuando no hay estanterías."""
+        # Limpiar frame
+        for widget in parent_frame.winfo_children():
+            widget.destroy()
+        
+        # Mensaje de advertencia
+        warning_container = ctk.CTkFrame(parent_frame, fg_color="#FFF3CD", corner_radius=10)
+        warning_container.pack(pady=40, padx=40, fill="both", expand=True)
+        
+        ctk.CTkLabel(warning_container, 
+                    text="⚠️ NO HAY ESTANTERÍAS DISPONIBLES", 
+                    font=("Segoe UI", 18, "bold"),
+                    text_color="#856404").pack(pady=(30, 15))
+        
+        message = (
+            "Para agregar libros, primero debes crear al menos una estantería.\n\n"
+            "Pasos para comenzar:\n"
+            "1. Ve a 'Gestionar Estanterías'\n"
+            "2. Crea una nueva estantería\n"
+            "3. Regresa aquí para agregar libros"
+        )
+        
+        ctk.CTkLabel(warning_container, 
+                    text=message,
+                    font=("Segoe UI", 12),
+                    text_color="#856404",
+                    justify="left").pack(pady=15, padx=30)
+        
+        # Botón para ir a gestionar estanterías
+        button_frame = ctk.CTkFrame(warning_container, fg_color="transparent")
+        button_frame.pack(pady=(10, 30))
+        
+        ctk.CTkButton(button_frame,
+                     text="📚 Ir a Gestionar Estanterías",
+                     command=self.ir_a_gestionar_estanterias,
+                     fg_color=self.colors['primary'],
+                     hover_color=self.colors['accent'],
+                     height=40,
+                     font=("Segoe UI", 12, "bold")).pack(side="left", padx=5)
+        
+        ctk.CTkButton(button_frame,
+                     text="🏠 Volver al Inicio",
+                     command=self._go_to_main_frame,
+                     fg_color=self.colors['secondary'],
+                     hover_color=self.colors['dark'],
+                     height=40,
+                     font=("Segoe UI", 12, "bold")).pack(side="left", padx=5)
+
+    def ir_a_gestionar_estanterias(self):
+        """Navega a la pantalla de gestión de estanterías."""
+        from .manage_shelves_frame import ManageShelvesFrame
+        self.master.switch_frame(ManageShelvesFrame)
 
     def _go_to_main_frame(self):
         """Navega al MainFrame, usando una importación local para evitar ciclos."""

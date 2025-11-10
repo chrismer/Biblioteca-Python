@@ -114,7 +114,7 @@ class ManageShelvesFrame(BaseFrame):
             header_frame.pack(fill="x", pady=(0, 10))
             
             headers = ["ID", "Nombre", "Capacidad", "Ocupados", "Libres", "Acciones"]
-            widths = [50, 200, 100, 100, 100, 200]  # Anchos fijos para cada columna
+            widths = [50, 200, 100, 100, 100, 200] 
             
             for i, header in enumerate(headers):
                 ctk.CTkLabel(header_frame, text=header, 
@@ -143,7 +143,7 @@ class ManageShelvesFrame(BaseFrame):
         row_frame = ctk.CTkFrame(self.list_frame, fg_color="white", corner_radius=8)
         row_frame.pack(fill="x", pady=2)
         
-        # Anchos fijos para alineación (mismos que los headers)
+        # Anchos fijos para alineación 
         widths = [50, 200, 100, 100, 100, 200]
         
         # Datos
@@ -281,7 +281,7 @@ class ManageShelvesFrame(BaseFrame):
                     font=("Segoe UI", 11),
                     justify="left").pack(pady=12, padx=12)
         
-        # Botones (más grandes y visibles)
+        # Botones 
         buttons_frame = ctk.CTkFrame(main_scroll, fg_color="transparent")
         buttons_frame.pack(pady=20)
         

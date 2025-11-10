@@ -49,7 +49,7 @@ class AddShelfFrame(ctk.CTkFrame):
 
             self.gestor.agregar_estanteria(nombre, capacidad)
             messagebox.showinfo("Éxito", f"Estantería '{nombre}' agregada correctamente.")
-            self._go_to_main_frame() # Vuelve al menú principal
+            self._go_to_main_frame()
 
         except Exception as e:
             messagebox.showerror("Error de Validación", str(e))

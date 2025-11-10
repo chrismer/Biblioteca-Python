@@ -13,6 +13,27 @@ class DBManager:
         config.read('config.ini')
         self.conn = sqlite3.connect(config['database']['db_file'])
         self.conn.row_factory = sqlite3.Row
+        
+        # Auto-inicializar tablas si no existen
+        self._verificar_e_inicializar_tablas()
+
+    def _verificar_e_inicializar_tablas(self):
+        """Verifica si las tablas existen y las crea si es necesario."""
+        try:
+            cursor = self.conn.cursor()
+            # Verificar si existe la tabla 'libros'
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='libros'")
+            if not cursor.fetchone():
+                print("📊 Inicializando base de datos por primera vez...")
+                self.crear_tablas()
+                print("✅ Tablas creadas exitosamente")
+        except Exception as e:
+            print(f"⚠️ Error al verificar/crear tablas: {e}")
+            # Intentar crear tablas de todas formas
+            try:
+                self.crear_tablas()
+            except:
+                pass
 
     def buscar_libros(self,
                       termino: Optional[str] = None,
@@ -82,7 +103,7 @@ class DBManager:
             params.append(estanteria_id)
 
         if estado_ejemplar:
-            # Necesitamos un JOIN con ejemplares si no está ya
+            # JOIN con ejemplares
             if "LEFT JOIN ejemplares" not in sql:
                  sql += "LEFT JOIN ejemplares e ON l.id = e.libro_id\n"
             where_clauses.append("e.estado = ?")
@@ -91,7 +112,7 @@ class DBManager:
         if where_clauses:
             sql += " WHERE " + " AND ".join(where_clauses)
 
-        # GROUP BY (necesario para conteos)
+        # GROUP BY
         sql += " GROUP BY l.id, a.id, g.id"
 
         # ORDER BY
@@ -121,7 +142,6 @@ class DBManager:
         if not rows:
             return []
 
-        # --- Optimización N+1 ---
         # 1. Obtener todos los IDs de libros de la consulta principal
         libro_ids = [row['id'] for row in rows]
 
@@ -295,8 +315,6 @@ class DBManager:
         cursor.execute("SELECT * FROM libros WHERE codigo = ?", (codigo,))
         row = cursor.fetchone()
         if row:
-            # Verificar si es modelo anterior o nuevo
-            # Usar la función de compatibilidad unificada
             return self._hidratar_libro(row)
         return None
 
@@ -549,7 +567,7 @@ class DBManager:
             WHERE l.estanteria_id = ?
         """, (libro_info['estanteria_id'],))
         
-        total_ejemplares = cursor.fetchone()['total'] + 1  # +1 para el nuevo ejemplar
+        total_ejemplares = cursor.fetchone()['total'] + 1 
         
         # Calcular nivel y posición (10 libros por nivel)
         nivel = ((total_ejemplares - 1) // 10) + 1

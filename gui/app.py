@@ -49,7 +49,7 @@ class App(ctk.CTk):
                 self.iconphoto(True, icon_image)
                 
         except Exception as e:
-            pass  # Continuar sin icono personalizado
+            pass  
 
     def destroy(self):
         self.gestor.cerrar()

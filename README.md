@@ -8,11 +8,146 @@
 
 ## 📜 Índice
 
+* [🚀 Guía de Inicio Rápido (5 minutos)](#-guía-de-inicio-rápido-5-minutos)
 * [🌟 Características Principales](#-características-principales)
 * [🏗️ Arquitectura del Proyecto](#️-arquitectura-del-proyecto)
 * [🛠️ Tecnologías Utilizadas](#️-tecnologías-utilizadas)
 * [🚀 Instalación y Puesta en Marcha](#-instalación-y-puesta-en-marcha)
 * [⚙️ Scripts de Mantenimiento](#️-scripts-de-mantenimiento)
+
+---
+
+## 🚀 Guía de Inicio Rápido
+
+### **📥 Instalación Express**
+
+```bash
+# 1. Instalar dependencias
+pip install -r requirements.txt
+
+# 2. Ejecutar la aplicación
+python3 main.py
+```
+
+**¡Eso es todo!** La base de datos se creará automáticamente la primera vez.
+
+---
+
+### **🎯 Tu Primera Biblioteca (4 pasos)**
+
+#### **Paso 1: Crear tu Primera Estantería** 📚
+
+1. Click en **"Gestionar Estanterías"**
+2. Click en **"Crear Nueva Estantería"**
+3. Completa el formulario:
+   - **Nombre**: Ej: "Ciencias"
+   - **Capacidad**: Ej: 50 (máximo 150)
+4. Click en **"Crear Estantería"**
+
+✅ **¡Listo!** Ya tienes tu primera estantería.
+
+---
+
+#### **Paso 2: Agregar tu Primer Libro** 📖
+
+1. Vuelve al inicio (botón **"🏠 Inicio"**)
+2. Click en **"Agregar Libro"**
+3. Completa el formulario:
+   - **Código**: Ej: "LIB001" (debe ser único)
+   - **Título**: Ej: "Cien Años de Soledad"
+   - **Autor Nombre**: Ej: "Gabriel"
+   - **Autor Apellido**: Ej: "García Márquez"
+   - **Año**: Ej: 1967
+   - **Estantería**: Selecciona "Ciencias"
+   - **Cantidad de Ejemplares**: Ej: 3
+4. Click en **"Crear Libro"**
+
+✅ **¡Perfecto!** Ya tienes tu primer libro con 3 ejemplares.
+
+**💡 Tip**: El sistema te mostrará automáticamente cuántos espacios libres tiene la estantería seleccionada.
+
+---
+
+#### **Paso 3: Registrar tu Primer Usuario** 👤
+
+1. Click en **"Gestionar Usuarios"**
+2. Click en **"Agregar Usuario"**
+3. Completa el formulario:
+   - **Nombre**: Ej: "Ana García"
+   - **Email**: Ej: "ana@email.com"
+   - **Teléfono**: Ej: "0981234567" (opcional)
+   - **Dirección**: Ej: "Av. Principal 123" (opcional)
+4. Click en **"Crear Usuario"**
+
+✅ **¡Excelente!** Ya puedes realizar préstamos.
+
+---
+
+#### **Paso 4: Realizar tu Primer Préstamo** 📤
+
+1. Click en **"Gestión de Préstamos"**
+2. Click en **"Realizar Préstamo"**
+3. Completa el formulario:
+   - **Usuario**: Selecciona "Ana García"
+   - **Ejemplar**: Selecciona un ejemplar disponible (Ej: "LIB001-001")
+   - **Días de préstamo**: Ej: 15
+4. Click en **"Realizar Préstamo"**
+
+✅ **¡Genial!** Has completado el flujo básico de BiblioHub.
+
+---
+
+### **⚡ Funcionalidades Rápidas**
+
+| Acción | Cómo hacerlo |
+|--------|--------------|
+| **Ver estadísticas** | Dashboard principal (se actualiza automáticamente) |
+| **Buscar libros** | "Buscar Libros" → Escribe título, autor, código o ISBN |
+| **Ver reportes** | "📊 Ver Reportes" en el dashboard |
+| **Devolver libro** | "Gestión de Préstamos" → "Préstamos Activos" → "Devolver" |
+| **Renovar préstamo** | "Gestión de Préstamos" → "Préstamos Activos" → "Renovar" |
+| **Mover libros** | "Mover Libros" → Buscar libro → Seleccionar estantería destino |
+
+---
+
+### **⚠️ Solución de Problemas Comunes**
+
+#### **"No hay estanterías disponibles"**
+**Solución**: Crea al menos una estantería primero en **"Gestionar Estanterías"**.
+
+#### **"No hay usuarios registrados"**
+**Solución**: Registra al menos un usuario en **"Gestionar Usuarios"** antes de hacer préstamos.
+
+#### **"Ya existe un libro con este código"**
+**Solución**: Usa un código diferente. Si eliminaste un libro y lo vuelves a agregar, usa un código nuevo (Ej: "LIB001v2" o "LIB001_nuevo").
+
+#### **"No hay suficiente espacio en la estantería"**
+**Solución**: 
+- Reduce la cantidad de ejemplares a agregar
+- Elige otra estantería con más espacio
+- Aumenta la capacidad de la estantería en **"Gestionar Estanterías"** → **"Editar"**
+
+---
+
+### **🎁 Datos de Prueba (Opcional)**
+
+Si prefieres empezar con datos de ejemplo en lugar de crear todo manualmente:
+
+```bash
+python init_database.py
+```
+
+Esto creará:
+- ✅ 3 estanterías de ejemplo
+- ✅ 10 libros con ejemplares
+- ✅ 3 usuarios
+- ✅ Algunos préstamos de ejemplo
+
+---
+
+### **🎉 ¡Ya estás listo!**
+
+Ahora conoces los conceptos básicos de BiblioHub. Para más detalles sobre características avanzadas, continúa leyendo las secciones siguientes.
 
 ---
 
@@ -122,18 +257,25 @@ El proyecto incluye un archivo `requirements.txt` para una fácil instalación.
 ```bash
 pip install -r requirements.txt
 ```
-#### **5. Inicializar la Base de Datos**
-Para crear la base de datos y poblarla con datos de prueba, ejecuta el siguiente script una sola vez:
+#### **5. Inicializar la Base de Datos (Opcional)**
+
+**🎉 NUEVO**: La base de datos se inicializa automáticamente la primera vez que ejecutas la aplicación.
+
+Si deseas poblar la base de datos con datos de prueba, ejecuta el siguiente script:
 
 ```bash
 python init_database.py
 ```
+
 #### **6. Ejecutar la Aplicación**
-Una vez instaladas las dependencias y creada la base de datos, inicia la aplicación con:
+
+Simplemente inicia la aplicación con:
 
 ```bash
 python3 main.py
 ```
+
+**Nota**: La aplicación creará automáticamente la base de datos vacía si no existe. Verás el mensaje "📊 Inicializando base de datos por primera vez..." en la consola la primera vez que ejecutes la aplicación.
 
 ---
 
@@ -223,6 +365,34 @@ BiblioHub cumple con todos los requisitos especificados para el proyecto. Para m
   - Transacciones para garantizar consistencia de datos
 
 ---
+
+## 💪 Robustez y Experiencia de Usuario
+
+BiblioHub está diseñado para ser robusto y amigable, incluso con usuarios nuevos:
+
+### **🛡️ Características de Robustez**
+
+- **Auto-inicialización de Base de Datos**: La aplicación detecta automáticamente si la base de datos no existe y la crea al iniciar.
+- **Validación Inteligente**: 
+  - Mensajes de error descriptivos y amigables en lugar de errores técnicos
+  - Guías paso a paso para resolver problemas comunes
+  - Advertencias preventivas antes de acciones críticas
+- **Manejo de Estados Vacíos**: 
+  - Pantallas informativas cuando no hay datos (ej: biblioteca vacía, sin préstamos)
+  - Guías de inicio para nuevos usuarios
+  - Navegación directa a las pantallas necesarias para comenzar
+- **Validaciones en Tiempo Real**: 
+  - Capacidad de estanterías mostrada dinámicamente
+  - Prevención de errores antes de intentar guardar
+  - Mensajes contextuales según el estado actual
+
+### **🎯 Mensajes de Error Mejorados**
+
+BiblioHub convierte errores técnicos en mensajes útiles:
+
+- **"UNIQUE constraint failed"** → "Ya existe un libro con este código. Sugerencia: usa 'LIB001v2' o 'LIB001_nuevo'"
+- **Error al buscar libros** → "No hay libros disponibles. Paso 1: Crea una estantería..."
+- **Estantería llena** → "No hay espacio suficiente. Disponibles: 5, Intentando agregar: 10"
 
 ## 🎨 Interfaz de Usuario
 

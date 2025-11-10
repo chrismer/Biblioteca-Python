@@ -101,7 +101,7 @@ class SearchBookFrame(BaseFrame):
                     text=f"✅ {len(resultados)} resultado(s) encontrado(s) para '{termino}'", 
                     text_color="white", font=("Segoe UI", 14, "bold")).pack(pady=10)
 
-        # --- Tabla de resultados con GRID para alineación perfecta ---
+        # --- Tabla de resultados ---
         table_container = ctk.CTkScrollableFrame(self.results_panel, fg_color=self.colors['light'], corner_radius=10)
         table_container.pack(fill="both", expand=True)
 

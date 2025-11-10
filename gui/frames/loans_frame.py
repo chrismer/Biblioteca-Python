@@ -56,6 +56,18 @@ class LoansFrame(ctk.CTkFrame):
         """Muestra el formulario para crear un nuevo préstamo."""
         self.limpiar_content_frame()
         
+        # Verificar si hay usuarios registrados
+        usuarios_disponibles = self.gestor.get_todos_usuarios()
+        if not usuarios_disponibles:
+            self.mostrar_advertencia_sin_usuarios()
+            return
+        
+        # Verificar si hay ejemplares disponibles
+        ejemplares_disponibles = self.gestor.db.get_ejemplares_disponibles()
+        if not ejemplares_disponibles:
+            self.mostrar_advertencia_sin_ejemplares()
+            return
+        
         ctk.CTkLabel(self.content_frame, text="Crear Nuevo Préstamo", 
                     font=("Arial", 16, "bold")).pack(pady=10)
         
@@ -71,13 +83,12 @@ class LoansFrame(ctk.CTkFrame):
         self.usuario_entry.grid(row=0, column=1, padx=10, pady=5, sticky="w")
 
         self.sugerencias_frame = ctk.CTkScrollableFrame(form_frame, width=280, height=100)
-        # El frame de sugerencias se mostrará cuando sea necesario
 
         self.usuario_entry.bind("<KeyRelease>", self.actualizar_sugerencias_usuario)
         
         # Variable para almacenar el ID del usuario seleccionado
         self.usuario_seleccionado_id = None
-        self.usuarios_cache = self.gestor.get_todos_usuarios()
+        self.usuarios_cache = usuarios_disponibles
 
         # Búsqueda de ejemplar
         ctk.CTkLabel(form_frame, text="Ejemplar *").grid(row=1, column=0, padx=10, pady=5, sticky="w")
@@ -89,7 +100,6 @@ class LoansFrame(ctk.CTkFrame):
         self.ejemplar_entry.pack(side="left")
 
         self.sugerencias_ejemplar_frame = ctk.CTkScrollableFrame(form_frame, width=280, height=100)
-        # Se mostrará cuando sea necesario
 
         # Vincular evento de tecleo a la búsqueda
         self.ejemplar_entry.bind("<KeyRelease>", self.buscar_ejemplar_on_typing)
@@ -114,7 +124,7 @@ class LoansFrame(ctk.CTkFrame):
 
         self.fecha_devolucion_label = ctk.CTkLabel(self.info_frame, text="", text_color="white")
         self.fecha_devolucion_label.pack(pady=5)
-        self.actualizar_fecha_devolucion() # Llamada inicial
+        self.actualizar_fecha_devolucion()
 
         # Vincular evento al spinbox
         self.dias_spinbox.bind("<KeyRelease>", lambda event: self.actualizar_fecha_devolucion())
@@ -609,3 +619,120 @@ class LoansFrame(ctk.CTkFrame):
             
         except Exception as e:
             messagebox.showerror("Error", f"Error al cargar historial: {str(e)}")
+
+    def mostrar_advertencia_sin_usuarios(self):
+        """Muestra una advertencia amigable cuando no hay usuarios registrados."""
+        
+        colors = {
+            'primary': '#002333',
+            'secondary': '#64748B',
+            'warning': '#856404'
+        }
+        
+        # Mensaje de advertencia
+        warning_container = ctk.CTkFrame(self.content_frame, fg_color="#FFF3CD", corner_radius=10)
+        warning_container.pack(pady=40, padx=40, fill="both", expand=True)
+        
+        ctk.CTkLabel(warning_container, 
+                    text="⚠️ NO HAY USUARIOS REGISTRADOS", 
+                    font=("Segoe UI", 18, "bold"),
+                    text_color=colors['warning']).pack(pady=(30, 15))
+        
+        message = (
+            "Para realizar préstamos, primero debes registrar al menos un usuario.\n\n"
+            "Pasos para comenzar:\n"
+            "1. Ve a 'Gestionar Usuarios'\n"
+            "2. Click en 'Agregar Usuario'\n"
+            "3. Registra un nuevo usuario\n"
+            "4. Regresa aquí para realizar préstamos"
+        )
+        
+        ctk.CTkLabel(warning_container, 
+                    text=message,
+                    font=("Segoe UI", 12),
+                    text_color=colors['warning'],
+                    justify="left").pack(pady=15, padx=30)
+        
+        # Botones de navegación
+        button_frame = ctk.CTkFrame(warning_container, fg_color="transparent")
+        button_frame.pack(pady=(10, 30))
+        
+        ctk.CTkButton(button_frame,
+                     text="👥 Ir a Gestionar Usuarios",
+                     command=self.ir_a_gestionar_usuarios,
+                     fg_color=colors['primary'],
+                     hover_color=colors['secondary'],
+                     height=40,
+                     font=("Segoe UI", 12, "bold")).pack(side="left", padx=5)
+        
+        ctk.CTkButton(button_frame,
+                     text="🏠 Volver al Inicio",
+                     command=self._go_to_main_frame,
+                     fg_color=colors['secondary'],
+                     hover_color=colors['primary'],
+                     height=40,
+                     font=("Segoe UI", 12, "bold")).pack(side="left", padx=5)
+
+    def mostrar_advertencia_sin_ejemplares(self):
+        """Muestra una advertencia amigable cuando no hay ejemplares disponibles."""
+    
+        colors = {
+            'primary': '#002333',
+            'secondary': '#64748B',
+            'warning': '#856404'
+        }
+        
+        # Mensaje de advertencia
+        warning_container = ctk.CTkFrame(self.content_frame, fg_color="#FFF3CD", corner_radius=10)
+        warning_container.pack(pady=40, padx=40, fill="both", expand=True)
+        
+        ctk.CTkLabel(warning_container, 
+                    text="⚠️ NO HAY EJEMPLARES DISPONIBLES", 
+                    font=("Segoe UI", 18, "bold"),
+                    text_color=colors['warning']).pack(pady=(30, 15))
+        
+        message = (
+            "Para realizar préstamos, debe haber al menos un libro disponible.\n\n"
+            "Posibles razones:\n"
+            "• No hay libros en la biblioteca\n"
+            "• Todos los ejemplares están prestados\n\n"
+            "Pasos para solucionar:\n"
+            "1. Si no hay libros: Ve a 'Agregar Libro'\n"
+            "2. Si están todos prestados: Espera a que devuelvan los libros"
+        )
+        
+        ctk.CTkLabel(warning_container, 
+                    text=message,
+                    font=("Segoe UI", 12),
+                    text_color=colors['warning'],
+                    justify="left").pack(pady=15, padx=30)
+        
+        # Botones de navegación
+        button_frame = ctk.CTkFrame(warning_container, fg_color="transparent")
+        button_frame.pack(pady=(10, 30))
+        
+        ctk.CTkButton(button_frame,
+                     text="📚 Ir a Agregar Libro",
+                     command=self.ir_a_agregar_libro,
+                     fg_color=colors['primary'],
+                     hover_color=colors['secondary'],
+                     height=40,
+                     font=("Segoe UI", 12, "bold")).pack(side="left", padx=5)
+        
+        ctk.CTkButton(button_frame,
+                     text="🏠 Volver al Inicio",
+                     command=self._go_to_main_frame,
+                     fg_color=colors['secondary'],
+                     hover_color=colors['primary'],
+                     height=40,
+                     font=("Segoe UI", 12, "bold")).pack(side="left", padx=5)
+
+    def ir_a_gestionar_usuarios(self):
+        """Navega a la pantalla de gestión de usuarios."""
+        from .users_frame import UsersFrame
+        self.master.switch_frame(UsersFrame)
+
+    def ir_a_agregar_libro(self):
+        """Navega a la pantalla de agregar libro."""
+        from .book_form_frame import BookFormFrame
+        self.master.switch_frame(BookFormFrame)

@@ -8,5 +8,4 @@ if TYPE_CHECKING:
 
 class EditBookFrame(BookFormFrame):
     def __init__(self, master: 'App', gestor: 'GestorBiblioteca', libro: Libro):
-        # Llama al constructor del formulario base en modo "Editar" (pasándole el libro)
         super().__init__(master, gestor, libro=libro)

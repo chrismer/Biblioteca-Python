@@ -202,7 +202,6 @@ class GestorBiblioteca:
         nuevo_codigo = f"{libro.codigo}-{nuevo_numero:03d}"
 
         # Llamar a insertar_ejemplar sin `ubicacion_fisica`.
-        # db_manager se encargará de generarla automáticamente.
         self.db.insertar_ejemplar(libro_id, nuevo_codigo)
 
     def eliminar_ejemplar(self, ejemplar_id: int):
@@ -316,7 +315,6 @@ class GestorBiblioteca:
                 libro_info, autor.id, genero_id, cantidad_ejemplares
             )
         except Exception as e:
-            # Re-lanzar errores de unicidad con mensajes amigables
             error_msg = str(e)
             if "UNIQUE constraint failed" in error_msg:
                 if "libros.codigo" in error_msg:

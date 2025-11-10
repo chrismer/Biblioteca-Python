@@ -51,12 +51,12 @@ class MoveBookFrame(BaseFrame):
         # Resultados de búsqueda
         self.results_frame = ctk.CTkScrollableFrame(step1_frame, height=150, fg_color="white")
         self.results_frame.pack(fill="both", padx=20, pady=(0, 15))
-        self.results_frame.pack_forget()  # Ocultar inicialmente
+        self.results_frame.pack_forget()
         
         # --- PASO 2: Información del libro seleccionado ---
         self.step2_frame = ctk.CTkFrame(form_frame, fg_color=self.colors['light'], corner_radius=10)
         self.step2_frame.pack(fill="x", padx=20, pady=10)
-        self.step2_frame.pack_forget()  # Ocultar inicialmente
+        self.step2_frame.pack_forget()  
         
         ctk.CTkLabel(self.step2_frame, text="📚 PASO 2: Libro Seleccionado", 
                     font=("Segoe UI", 14, "bold"), 
@@ -93,7 +93,7 @@ class MoveBookFrame(BaseFrame):
         # --- PASO 3: Seleccionar estantería destino ---
         self.step3_frame = ctk.CTkFrame(form_frame, fg_color=self.colors['light'], corner_radius=10)
         self.step3_frame.pack(fill="x", padx=20, pady=10)
-        self.step3_frame.pack_forget()  # Ocultar inicialmente
+        self.step3_frame.pack_forget()
         
         ctk.CTkLabel(self.step3_frame, text="🎯 PASO 3: Seleccionar Estantería Destino", 
                     font=("Segoe UI", 14, "bold"), 
@@ -107,7 +107,7 @@ class MoveBookFrame(BaseFrame):
         # --- Botón de acción (al final, se mostrará solo al seleccionar libro) ---
         self.button_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
         self.button_frame.pack(fill="x", padx=20, pady=20)
-        self.button_frame.pack_forget()  # Ocultar inicialmente
+        self.button_frame.pack_forget()
         
         self.move_button = ctk.CTkButton(self.button_frame, text="📦 Mover Libro y Ejemplares", 
                                         command=self.mover_libro,
@@ -123,7 +123,7 @@ class MoveBookFrame(BaseFrame):
     def buscar_libro_en_tiempo_real(self, event=None):
         """Búsqueda en tiempo real mientras el usuario escribe."""
         termino = self.search_entry.get().strip()
-        if len(termino) >= 2:  # Buscar solo si hay al menos 2 caracteres
+        if len(termino) >= 2: 
             self.buscar_libros()
         elif len(termino) == 0:
             self.results_frame.pack_forget()
@@ -221,7 +221,7 @@ class MoveBookFrame(BaseFrame):
         # Mostrar paso 3
         self.step3_frame.pack(fill="x", padx=20, pady=10)
         
-        # Mostrar y habilitar botón de mover (al final)
+        # Mostrar y habilitar botón de mover 
         self.button_frame.pack(fill="x", padx=20, pady=20)
         self.move_button.configure(state="normal")
     

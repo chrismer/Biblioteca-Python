@@ -109,6 +109,21 @@ class ListFrame(ctk.CTkFrame):
         self.master.switch_frame(MainFrame)
 
     def prestar(self, libro: Libro):
+        # Verificar si hay usuarios registrados
+        usuarios_disponibles = self.gestor.get_todos_usuarios()
+        if not usuarios_disponibles:
+            respuesta = confirmar(
+                "Sin Usuarios Registrados",
+                "⚠️ No hay usuarios registrados en el sistema.\n\n"
+                "Para realizar préstamos, primero debes registrar al menos un usuario.\n\n"
+                "¿Deseas ir a 'Gestionar Usuarios' ahora?",
+                parent=self
+            )
+            if respuesta:
+                from .users_frame import UsersFrame
+                self.master.switch_frame(UsersFrame)
+            return
+        
         try:
             self.gestor.prestar_libro(libro.codigo)
             messagebox.showinfo("Éxito", f"Se ha prestado un ejemplar de '{libro.titulo}'.")
@@ -209,7 +224,7 @@ class ListFrame(ctk.CTkFrame):
             if confirmar("Confirmar", f"¿Desea añadir un nuevo ejemplar para '{libro.titulo}'?", parent=window):
                 self.gestor.agregar_nuevo_ejemplar(libro.id)
                 messagebox.showinfo("Éxito", "Nuevo ejemplar añadido correctamente.", parent=window)
-                self.redraw_ejemplares_list(scroll_frame, libro) # Redibujar la lista
+                self.redraw_ejemplares_list(scroll_frame, libro) 
         except Exception as e:
             messagebox.showerror("Error", str(e), parent=window)
 
@@ -224,7 +239,6 @@ class ListFrame(ctk.CTkFrame):
 
     def prestar_ejemplar_individual(self, ejemplar, window):
         """Presta un ejemplar específico."""
-        # Esta función se conectaría con el sistema de préstamos nuevo
         messagebox.showinfo("Función Avanzada", 
                            f"Para prestar ejemplares individuales, use:\n"
                            f"📤 Gestionar Préstamos → ➕ Nuevo Préstamo\n\n"

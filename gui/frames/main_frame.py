@@ -22,7 +22,7 @@ class MainFrame(ctk.CTkFrame):
         self.master = master
         self.gestor = gestor
         
-        # Colores modernos - Paleta personalizada
+        # Paleta personalizada
         self.colors = {
             'primary': '#002333',      # Azul personalizado
             'secondary': '#64748B',    # Gris azulado
@@ -129,13 +129,13 @@ class MainFrame(ctk.CTkFrame):
                 bg_image = Image.open("assets/bg-bibliohub.png")
                 bg_ctk_image = ctk.CTkImage(bg_image, size=(1320, 500))
                 
-                # Label con imagen de fondo (sin overlay azul)
+                # Label con imagen de fondo 
                 bg_label = ctk.CTkLabel(hero_frame, image=bg_ctk_image, text="", corner_radius=20)
                 bg_label.place(x=0.5, y=0, anchor="nw")
                 
         except Exception as e:
-            pass  # Continuar con fallback si no hay imagen
-            # Fallback: mostrar solo un mensaje simple
+            pass  
+        
             fallback_frame = ctk.CTkFrame(hero_frame, fg_color=self.colors['light'], corner_radius=20)
             fallback_frame.pack(fill="both", expand=True)
             
@@ -164,12 +164,11 @@ class MainFrame(ctk.CTkFrame):
                 if hasattr(self.master.current_frame, 'mostrar_resultados'):
                     self.master.current_frame.mostrar_resultados(libros_encontrados, termino)
                 elif hasattr(self.master.current_frame, 'buscar_libros'):
-                    # Fallback: ejecutar búsqueda automáticamente
                     self.master.current_frame.buscar_libros()
                 
             except Exception as e:
-                pass  # Fallback silencioso
-                # Fallback: ir a la pantalla de búsqueda normal
+                pass  
+            
                 self.master.switch_frame(SearchBookFrame)
         else:
             # Si no hay término, solo ir a la pantalla de búsqueda
@@ -347,16 +346,30 @@ class MainFrame(ctk.CTkFrame):
     def mostrar_disponibles(self):
         try:
             libros = self.gestor.get_libros_disponibles()
+            if not libros:
+                messagebox.showinfo("Sin Libros Disponibles", 
+                                  "📚 No hay libros disponibles en este momento.\n\n"
+                                  "Para agregar libros:\n"
+                                  "1. Primero crea una estantería (Gestionar Estanterías)\n"
+                                  "2. Luego agrega libros (Agregar Libro)")
+                return
             self.master.switch_frame(ListFrame, titulo="Libros Disponibles", libros=libros)
         except Exception as e:
-            messagebox.showerror("Error", str(e))
+            messagebox.showerror("Error", 
+                               f"Error al cargar libros:\n{str(e)}\n\n"
+                               "Asegúrate de haber creado al menos una estantería primero.")
 
     def mostrar_prestados(self):
         try:
             libros = self.gestor.get_libros_prestados()
+            if not libros:
+                messagebox.showinfo("Sin Préstamos", 
+                                  "📤 No hay libros prestados actualmente.\n\n"
+                                  "Los libros prestados aparecerán aquí cuando realices préstamos.")
+                return
             self.master.switch_frame(ListFrame, titulo="Libros Prestados", libros=libros)
         except Exception as e:
-            messagebox.showerror("Error", str(e))
+            messagebox.showerror("Error", f"Error al cargar libros prestados: {str(e)}")
 
     def mostrar_mas_prestado(self):
         try:
@@ -373,6 +386,17 @@ class MainFrame(ctk.CTkFrame):
         """Muestra los reportes avanzados del sistema."""
         try:
             resumen = self.gestor.get_resumen_biblioteca()
+            
+            # Verificar si hay datos
+            if resumen['total_libros'] == 0:
+                messagebox.showinfo("Biblioteca Vacía", 
+                                  "📊 La biblioteca está vacía.\n\n"
+                                  "Para comenzar:\n"
+                                  "1. Crea estanterías (Gestionar Estanterías)\n"
+                                  "2. Agrega libros (Agregar Libro)\n"
+                                  "3. Registra usuarios (Gestionar Usuarios)\n"
+                                  "4. Realiza préstamos")
+                return
             
             reporte_text = "📊 RESUMEN DE LA BIBLIOTECA\n\n"
             reporte_text += f"📚 Total de libros: {resumen['total_libros']}\n"
