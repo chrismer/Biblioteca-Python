@@ -48,7 +48,7 @@ BiblioHub está diseñado para ser intuitivo y potente, ofreciendo un conjunto c
 
 #### **🔍 Búsqueda y Reportes**
 
-* **Búsqueda Inteligente**: Un potente motor de búsqueda que encuentra libros por título, autor, código o ISBN, priorizando las coincidencias exactas.
+* **Búsqueda Unificada**: A través de la función `buscar_libros(termino)`, el sistema ofrece una búsqueda potente y flexible por título, autor, código o ISBN. Si el término es puramente numérico, se realiza una búsqueda parcial sobre el código del libro.
 * **Búsqueda en Tiempo Real**: Búsqueda dinámica en la interfaz de "Mover Libros" que actualiza resultados mientras escribes.
 * **Dashboard de Estadísticas**: La pantalla principal ofrece un resumen en tiempo real del estado de la biblioteca (total de libros, ejemplares disponibles, préstamos activos y vencidos).
 * **Vistas Especializadas**: Listados dedicados para libros disponibles, libros prestados, y libro más prestado.
@@ -141,11 +141,14 @@ python3 main.py
 
 El proyecto incluye scripts adicionales para tareas de desarrollo y mantenimiento:
 
-### Scripts Activos
+### Scripts de Uso General
 
-- **init_database.py**: Inicializa la base de datos y la puebla con datos de prueba (autores, géneros, estanterías, libros, ejemplares y usuarios).
-- **update_ubicaciones.py**: Genera y asigna ubicaciones físicas descriptivas a todos los ejemplares que no tienen una ubicación asignada.
-- **test_debug.py**: Script de pruebas para depurar funciones específicas sin levantar la interfaz gráfica.
+- **`init_database.py`**: **(Ejecutar una sola vez)**. Crea el archivo de base de datos (`biblioteca.db`) y lo puebla con un conjunto de datos inicial para pruebas. Es fundamental ejecutarlo antes de iniciar la aplicación por primera vez.
+
+### Scripts de Desarrollo y Mantenimiento
+
+- **`update_ubicaciones.py`**: **(Opcional)**. Este script recorre todos los ejemplares de la base de datos y asigna una ubicación física descriptiva (ej: "Estantería A - Nivel 1 - Pos 3") a aquellos que no la tengan. Es útil para mantener la consistencia del catálogo si se han importado datos manualmente o si se usaron versiones antiguas de la aplicación. No es necesario ejecutarlo durante el uso normal de la GUI.
+- **`test_debug.py`**: Script de desarrollo utilizado para probar funciones específicas del backend sin necesidad de iniciar la interfaz gráfica.
 
 ### Scripts Obsoletos
 
@@ -181,7 +184,7 @@ Biblioteca/
 
 ## 📊 Requisitos Cumplidos
 
-BiblioHub cumple con todos los requisitos especificados para el proyecto:
+BiblioHub cumple con todos los requisitos especificados para el proyecto. Para más detalles sobre la implementación, consulta la sección de [Arquitectura del Proyecto](#️-arquitectura-del-proyecto).
 
 ### ✅ Requisitos Básicos (Verde)
 - ✅ Crear, modificar y eliminar libros

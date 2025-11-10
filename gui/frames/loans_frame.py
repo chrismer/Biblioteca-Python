@@ -66,38 +66,36 @@ class LoansFrame(ctk.CTkFrame):
         # Selección de usuario
         ctk.CTkLabel(form_frame, text="Usuario *").grid(row=0, column=0, padx=10, pady=5, sticky="w")
         
-        try:
-            usuarios = self.gestor.get_todos_usuarios()
-            if not usuarios:
-                ctk.CTkLabel(form_frame, text="No hay usuarios registrados. Agregue un usuario primero.", 
-                           fg_color="red").grid(row=0, column=1, padx=10, pady=5)
-                return
-            
-            usuario_options = [f"{u.id} - {u.nombre}" for u in usuarios]
-            self.usuario_combo = ctk.CTkComboBox(form_frame, values=usuario_options, width=300)
-            self.usuario_combo.grid(row=0, column=1, padx=10, pady=5)
-            
-        except Exception as e:
-            messagebox.showerror("Error", f"Error al cargar usuarios: {str(e)}")
-            return
+        # Campo de búsqueda de usuario con autocompletado
+        self.usuario_entry = ctk.CTkEntry(form_frame, placeholder_text="Buscar por nombre...", width=300)
+        self.usuario_entry.grid(row=0, column=1, padx=10, pady=5, sticky="w")
+
+        self.sugerencias_frame = ctk.CTkScrollableFrame(form_frame, width=280, height=100)
+        # El frame de sugerencias se mostrará cuando sea necesario
+
+        self.usuario_entry.bind("<KeyRelease>", self.actualizar_sugerencias_usuario)
         
-        # Selección de ejemplar disponible
+        # Variable para almacenar el ID del usuario seleccionado
+        self.usuario_seleccionado_id = None
+        self.usuarios_cache = self.gestor.get_todos_usuarios()
+
+        # Búsqueda de ejemplar
         ctk.CTkLabel(form_frame, text="Ejemplar *").grid(row=1, column=0, padx=10, pady=5, sticky="w")
         
-        try:
-            ejemplares = self.gestor.get_ejemplares_disponibles()
-            if not ejemplares:
-                ctk.CTkLabel(form_frame, text="No hay ejemplares disponibles para préstamo.", 
-                           fg_color="red").grid(row=1, column=1, padx=10, pady=5)
-                return
-            
-            ejemplar_options = [f"{e.id} - {e.codigo_ejemplar}" for e in ejemplares]
-            self.ejemplar_combo = ctk.CTkComboBox(form_frame, values=ejemplar_options, width=300)
-            self.ejemplar_combo.grid(row=1, column=1, padx=10, pady=5)
-            
-        except Exception as e:
-            messagebox.showerror("Error", f"Error al cargar ejemplares: {str(e)}")
-            return
+        self.ejemplar_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        self.ejemplar_frame.grid(row=1, column=1, padx=10, pady=5, sticky="w")
+
+        self.ejemplar_entry = ctk.CTkEntry(self.ejemplar_frame, placeholder_text="Buscar por código o título...", width=300)
+        self.ejemplar_entry.pack(side="left")
+
+        self.sugerencias_ejemplar_frame = ctk.CTkScrollableFrame(form_frame, width=280, height=100)
+        # Se mostrará cuando sea necesario
+
+        # Vincular evento de tecleo a la búsqueda
+        self.ejemplar_entry.bind("<KeyRelease>", self.buscar_ejemplar_on_typing)
+
+        # Variable para almacenar el ID del ejemplar encontrado
+        self.ejemplar_encontrado_id = None
         
         # Días de préstamo
         ctk.CTkLabel(form_frame, text="Días de préstamo").grid(row=2, column=0, padx=10, pady=5, sticky="w")
@@ -111,12 +109,15 @@ class LoansFrame(ctk.CTkFrame):
         self.observaciones_text.grid(row=3, column=1, padx=10, pady=5)
         
         # Información adicional
-        info_frame = ctk.CTkFrame(form_frame, fg_color="blue")
-        info_frame.grid(row=4, column=0, columnspan=2, pady=10, padx=10, sticky="ew")
-        
-        fecha_devolucion = date.today() + timedelta(days=15)
-        ctk.CTkLabel(info_frame, text=f"📅 Fecha de devolución esperada: {fecha_devolucion}", 
-                    text_color="white").pack(pady=5)
+        self.info_frame = ctk.CTkFrame(form_frame, fg_color="blue")
+        self.info_frame.grid(row=4, column=0, columnspan=2, pady=10, padx=10, sticky="ew")
+
+        self.fecha_devolucion_label = ctk.CTkLabel(self.info_frame, text="", text_color="white")
+        self.fecha_devolucion_label.pack(pady=5)
+        self.actualizar_fecha_devolucion() # Llamada inicial
+
+        # Vincular evento al spinbox
+        self.dias_spinbox.bind("<KeyRelease>", lambda event: self.actualizar_fecha_devolucion())
         
         # Botones
         buttons_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
@@ -127,32 +128,124 @@ class LoansFrame(ctk.CTkFrame):
         ctk.CTkButton(buttons_frame, text="Limpiar", fg_color="orange",
                      command=self.limpiar_formulario_prestamo).pack(side="left", padx=10)
 
+    def seleccionar_usuario(self, usuario):
+        """Maneja la selección de un usuario de la lista de sugerencias."""
+        self.usuario_entry.delete(0, 'end')
+        self.usuario_entry.insert(0, f"{usuario.id} - {usuario.nombre}")
+        self.usuario_seleccionado_id = usuario.id
+        self.sugerencias_frame.place_forget()
+
+    def actualizar_sugerencias_usuario(self, event):
+        """Filtra y muestra las sugerencias de usuarios según el texto de entrada."""
+        termino = self.usuario_entry.get().lower()
+
+        for widget in self.sugerencias_frame.winfo_children():
+            widget.destroy()
+
+        if not termino:
+            self.sugerencias_frame.place_forget()
+            self.usuario_seleccionado_id = None
+            return
+
+        sugerencias = [u for u in self.usuarios_cache if termino in u.nombre.lower()]
+
+        if sugerencias:
+            entry_x = self.usuario_entry.winfo_x()
+            entry_y = self.usuario_entry.winfo_y()
+            entry_height = self.usuario_entry.winfo_height()
+
+            self.sugerencias_frame.place(x=entry_x, y=entry_y + entry_height)
+            self.sugerencias_frame.lift()
+
+            for usuario in sugerencias:
+                texto = f"{usuario.id} - {usuario.nombre}"
+                ctk.CTkButton(
+                    self.sugerencias_frame,
+                    text=texto,
+                    command=lambda u=usuario: self.seleccionar_usuario(u),
+                    anchor="w"
+                ).pack(fill="x", padx=2, pady=2)
+        else:
+            self.sugerencias_frame.place_forget()
+            self.usuario_seleccionado_id = None
+
+    def actualizar_fecha_devolucion(self):
+        """Actualiza la etiqueta de fecha de devolución según los días introducidos."""
+        try:
+            dias = int(self.dias_spinbox.get())
+            if dias > 0:
+                fecha_devolucion = date.today() + timedelta(days=dias)
+                self.fecha_devolucion_label.configure(text=f"📅 Fecha de devolución esperada: {fecha_devolucion}")
+            else:
+                self.fecha_devolucion_label.configure(text="📅 Ingrese un número de días válido")
+        except (ValueError, TypeError):
+            self.fecha_devolucion_label.configure(text="📅 Ingrese un número de días válido")
+
+    def seleccionar_ejemplar(self, ejemplar, titulo_libro):
+        """Maneja la selección de un ejemplar de la lista de sugerencias."""
+        self.ejemplar_entry.delete(0, 'end')
+        self.ejemplar_entry.insert(0, f"{ejemplar.codigo_ejemplar} - {titulo_libro}")
+        self.ejemplar_encontrado_id = ejemplar.id
+        self.sugerencias_ejemplar_frame.place_forget()
+
+    def buscar_ejemplar_on_typing(self, event):
+        """Filtra y muestra sugerencias de ejemplares."""
+        termino = self.ejemplar_entry.get().strip()
+
+        for widget in self.sugerencias_ejemplar_frame.winfo_children():
+            widget.destroy()
+
+        if not termino:
+            self.sugerencias_ejemplar_frame.place_forget()
+            self.ejemplar_encontrado_id = None
+            return
+
+        try:
+            sugerencias = self.gestor.buscar_ejemplares_disponibles(termino)
+
+            if sugerencias:
+                frame_x = self.ejemplar_frame.winfo_x()
+                frame_y = self.ejemplar_frame.winfo_y()
+                entry_height = self.ejemplar_entry.winfo_height()
+
+                self.sugerencias_ejemplar_frame.place(x=frame_x, y=frame_y + entry_height)
+                self.sugerencias_ejemplar_frame.lift()
+
+                for ejemplar, titulo_libro in sugerencias:
+                    texto = f"{ejemplar.codigo_ejemplar} - {titulo_libro}"
+                    ctk.CTkButton(
+                        self.sugerencias_ejemplar_frame,
+                        text=texto,
+                        command=lambda e=ejemplar, t=titulo_libro: self.seleccionar_ejemplar(e, t),
+                        anchor="w"
+                    ).pack(fill="x", padx=2, pady=2)
+            else:
+                self.sugerencias_ejemplar_frame.place_forget()
+                self.ejemplar_encontrado_id = None
+        except Exception as e:
+            print(f"Error buscando ejemplares: {e}")
+
     def crear_prestamo(self):
         """Crea un nuevo préstamo."""
         try:
-            # Obtener datos del formulario
-            usuario_selection = self.usuario_combo.get()
-            ejemplar_selection = self.ejemplar_combo.get()
             dias_str = self.dias_spinbox.get()
             observaciones = self.observaciones_text.get("1.0", "end-1c").strip()
             
-            if not usuario_selection or not ejemplar_selection:
-                raise ValueError("Debe seleccionar usuario y ejemplar")
+            if self.usuario_seleccionado_id is None or self.ejemplar_encontrado_id is None:
+                raise ValueError("Debe seleccionar un usuario y un ejemplar válido y disponible")
             
-            # Extraer IDs
-            usuario_id = int(usuario_selection.split(" - ")[0])
-            ejemplar_id = int(ejemplar_selection.split(" - ")[0])
+            usuario_id = self.usuario_seleccionado_id
+            ejemplar_id = self.ejemplar_encontrado_id
             
             try:
                 dias_prestamo = int(dias_str)
                 if dias_prestamo < 1 or dias_prestamo > 90:
                     raise ValueError("Los días de préstamo deben estar entre 1 y 90")
-            except ValueError:
+            except (ValueError, TypeError):
                 raise ValueError("Los días de préstamo deben ser un número válido")
             
-            # Crear préstamo
             prestamo_id = self.gestor.prestar_ejemplar(
-                ejemplar_id, usuario_id, dias_prestamo, 
+                ejemplar_id, usuario_id, dias_prestamo,
                 observaciones if observaciones else None
             )
             
@@ -164,11 +257,15 @@ class LoansFrame(ctk.CTkFrame):
 
     def limpiar_formulario_prestamo(self):
         """Limpia el formulario de préstamo."""
-        self.usuario_combo.set("")
-        self.ejemplar_combo.set("")
+        self.usuario_entry.delete(0, 'end')
+        self.usuario_seleccionado_id = None
+        self.sugerencias_frame.grid_remove()
+        self.ejemplar_entry.delete(0, 'end')
+        self.ejemplar_encontrado_id = None
         self.dias_spinbox.delete(0, 'end')
         self.dias_spinbox.insert(0, "15")
         self.observaciones_text.delete("1.0", "end")
+        self.actualizar_fecha_devolucion()
 
     def mostrar_prestamos_activos(self):
         """Muestra la lista de préstamos activos."""
@@ -396,6 +493,119 @@ class LoansFrame(ctk.CTkFrame):
         ctk.CTkLabel(self.content_frame, text="📊 Historial de Préstamos", 
                     font=("Arial", 16, "bold")).pack(pady=10)
         
+        # Frame para filtros
+        filtros_frame = ctk.CTkFrame(self.content_frame)
+        filtros_frame.pack(pady=10, padx=20, fill="x")
         
-        ctk.CTkLabel(self.content_frame, text="Funcionalidad en desarrollo...\n\nAquí se mostrará el historial completo de préstamos con filtros avanzados.", 
-                    fg_color="blue").pack(pady=50)
+        ctk.CTkLabel(filtros_frame, text="Filtrar por:").pack(side="left", padx=10)
+        
+        # Variable para el filtro
+        self.filtro_historial = ctk.StringVar(value="todos")
+        
+        ctk.CTkRadioButton(filtros_frame, text="Todos", variable=self.filtro_historial, 
+                          value="todos", command=self.actualizar_historial).pack(side="left", padx=5)
+        ctk.CTkRadioButton(filtros_frame, text="Solo Devueltos", variable=self.filtro_historial, 
+                          value="devueltos", command=self.actualizar_historial).pack(side="left", padx=5)
+        ctk.CTkRadioButton(filtros_frame, text="Solo Activos", variable=self.filtro_historial, 
+                          value="activos", command=self.actualizar_historial).pack(side="left", padx=5)
+        
+        # Frame para la tabla
+        self.historial_scroll_frame = ctk.CTkScrollableFrame(self.content_frame)
+        self.historial_scroll_frame.pack(pady=10, padx=10, fill="both", expand=True)
+        
+        # Cargar historial inicial
+        self.actualizar_historial()
+
+    def actualizar_historial(self):
+        """Actualiza la tabla de historial según el filtro seleccionado."""
+        # Limpiar tabla
+        for widget in self.historial_scroll_frame.winfo_children():
+            widget.destroy()
+        
+        try:
+            filtro = self.filtro_historial.get()
+            
+            # Obtener préstamos según filtro
+            if filtro == "devueltos":
+                prestamos = self.gestor.get_historial_prestamos(limite=100, solo_devueltos=True)
+            elif filtro == "activos":
+                prestamos = self.gestor.get_prestamos_activos()
+            else:  # todos
+                prestamos = self.gestor.get_historial_prestamos(limite=100)
+            
+            if not prestamos:
+                ctk.CTkLabel(self.historial_scroll_frame, 
+                            text="No hay préstamos en el historial.", 
+                            fg_color="blue").pack(pady=20)
+                return
+            
+            # Información de resultados
+            info_frame = ctk.CTkFrame(self.historial_scroll_frame, fg_color="#E3F2FD")
+            info_frame.grid(row=0, column=0, columnspan=8, sticky="ew", pady=(0, 10))
+            ctk.CTkLabel(info_frame, 
+                        text=f"📊 Mostrando {len(prestamos)} préstamos",
+                        font=("Arial", 11, "bold")).pack(pady=5)
+            
+            # Encabezados
+            headers = ["ID", "Usuario", "Ejemplar", "Libro", "Fecha Préstamo", 
+                      "Fecha Devolución", "Estado", "Días"]
+            for i, header in enumerate(headers):
+                ctk.CTkLabel(self.historial_scroll_frame, text=header, 
+                            font=("Arial", 11, "bold")).grid(
+                    row=1, column=i, padx=5, pady=5, sticky="w")
+            
+            # Datos de préstamos
+            for row_num, prestamo in enumerate(prestamos, start=2):
+                # Obtener información adicional
+                usuario = self.gestor.get_usuario(prestamo.usuario_id)
+                ejemplar = self.gestor.db.get_ejemplar(prestamo.ejemplar_id)
+                
+                # Obtener información del libro
+                libro_titulo = "N/A"
+                if ejemplar:
+                    libro = self.gestor.db.get_libro_por_id(ejemplar.libro_id)
+                    if libro:
+                        libro_titulo = libro.titulo
+                
+                # Calcular días
+                if prestamo.estado == 'devuelto' and prestamo.fecha_devolucion_real:
+                    dias = (prestamo.fecha_devolucion_real - prestamo.fecha_prestamo).days
+                    dias_text = f"{dias} días"
+                else:
+                    dias = (date.today() - prestamo.fecha_prestamo).days
+                    dias_text = f"{dias} días (activo)"
+                
+                # Fecha de devolución
+                fecha_dev = prestamo.fecha_devolucion_real if prestamo.fecha_devolucion_real else prestamo.fecha_devolucion_esperada
+                
+                # Estado con color
+                if prestamo.estado == 'devuelto':
+                    estado_text = "✅ Devuelto"
+                    estado_color = "green"
+                elif prestamo.esta_vencido:
+                    estado_text = "⚠️ Vencido"
+                    estado_color = "red"
+                else:
+                    estado_text = "🔄 Activo"
+                    estado_color = "blue"
+                
+                # Mostrar datos
+                ctk.CTkLabel(self.historial_scroll_frame, text=str(prestamo.id)).grid(
+                    row=row_num, column=0, padx=5, pady=2)
+                ctk.CTkLabel(self.historial_scroll_frame, text=usuario.nombre if usuario else "N/A").grid(
+                    row=row_num, column=1, padx=5, pady=2)
+                ctk.CTkLabel(self.historial_scroll_frame, text=ejemplar.codigo_ejemplar if ejemplar else "N/A").grid(
+                    row=row_num, column=2, padx=5, pady=2)
+                ctk.CTkLabel(self.historial_scroll_frame, text=libro_titulo, wraplength=150).grid(
+                    row=row_num, column=3, padx=5, pady=2)
+                ctk.CTkLabel(self.historial_scroll_frame, text=str(prestamo.fecha_prestamo)).grid(
+                    row=row_num, column=4, padx=5, pady=2)
+                ctk.CTkLabel(self.historial_scroll_frame, text=str(fecha_dev)).grid(
+                    row=row_num, column=5, padx=5, pady=2)
+                ctk.CTkLabel(self.historial_scroll_frame, text=estado_text, text_color=estado_color).grid(
+                    row=row_num, column=6, padx=5, pady=2)
+                ctk.CTkLabel(self.historial_scroll_frame, text=dias_text).grid(
+                    row=row_num, column=7, padx=5, pady=2)
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al cargar historial: {str(e)}")

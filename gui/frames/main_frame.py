@@ -383,6 +383,19 @@ class MainFrame(ctk.CTkFrame):
             reporte_text += f"⚠️ Préstamos vencidos: {resumen['prestamos_vencidos']}\n"
             reporte_text += f"👥 Usuarios activos: {resumen['usuarios_activos']}\n"
             
+            # Agregar libro más prestado
+            reporte_text += "\n" + "="*20 + "\n\n"
+            libro_popular = self.gestor.get_libro_mas_prestado()
+            if libro_popular:
+                autor_nombre = libro_popular.autor.nombre_completo if libro_popular.autor else "Autor Desconocido"
+                reporte_text += f"🏆 LIBRO MÁS PRESTADO:\n"
+                reporte_text += f"   📖 Título: {libro_popular.titulo}\n"
+                reporte_text += f"   ✍️ Autor: {autor_nombre}\n"
+                reporte_text += f"   📊 Préstamos: {libro_popular.historial_prestamos} veces\n"
+            else:
+                reporte_text += "🏆 LIBRO MÁS PRESTADO:\n"
+                reporte_text += "   (Aún no se han registrado préstamos)\n"
+            
             messagebox.showinfo("Reportes de la Biblioteca", reporte_text)
             
         except Exception as e:

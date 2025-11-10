@@ -8,10 +8,6 @@ class Estanteria:
         self.nombre = nombre
         self.capacidad = int(capacidad)
 
-    def get_libros_asignados(self, gestor: 'GestorBiblioteca') -> list['Libro']:
-        """Consulta libros asignados a esta estantería via gestor."""
-        return gestor.get_libros_por_estanteria(self.id)
-
 class Usuario:
     def __init__(self, id: int, nombre: str, email: Optional[str] = None, 
                  telefono: Optional[str] = None, direccion: Optional[str] = None,

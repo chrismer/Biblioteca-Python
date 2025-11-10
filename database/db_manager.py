@@ -14,6 +14,142 @@ class DBManager:
         self.conn = sqlite3.connect(config['database']['db_file'])
         self.conn.row_factory = sqlite3.Row
 
+    def buscar_libros(self,
+                      termino: Optional[str] = None,
+                      estanteria_id: Optional[int] = None,
+                      estado_ejemplar: Optional[str] = None,
+                      ordenar_por: Optional[str] = None,
+                      limite: Optional[int] = None) -> List[Libro]:
+        """
+        Función de búsqueda unificada y avanzada para libros.
+
+        Args:
+            termino (Optional[str]): Término de búsqueda para título, autor, ISBN, etc.
+            estanteria_id (Optional[int]): ID de la estantería para filtrar.
+            estado_ejemplar (Optional[str]): 'disponible' o 'prestado'.
+            ordenar_por (Optional[str]): 'mas_prestado'.
+            limite (Optional[int]): Limita el número de resultados.
+
+        Returns:
+            List[Libro]: Lista de libros que coinciden con los criterios.
+        """
+
+        params = []
+
+        # SELECT y JOINs base
+        sql = """
+            SELECT DISTINCT l.*,
+                   a.nombre as autor_nombre, a.apellido as autor_apellido,
+                   g.nombre as genero_nombre
+        """
+        # Añadir conteo de préstamos solo si se necesita ordenar por ello
+        if ordenar_por == 'mas_prestado':
+            sql += ", COUNT(p.id) as total_prestamos\n"
+
+        sql += """
+            FROM libros l
+            LEFT JOIN autores a ON l.autor_id = a.id
+            LEFT JOIN generos g ON l.genero_id = g.id
+        """
+
+        # JOINs condicionales
+        if estado_ejemplar or ordenar_por == 'mas_prestado':
+            sql += "LEFT JOIN ejemplares e ON l.id = e.libro_id\n"
+        if ordenar_por == 'mas_prestado':
+            sql += "LEFT JOIN prestamos p ON e.id = p.ejemplar_id\n"
+
+        # Cláusula WHERE
+        where_clauses = []
+        if termino:
+            # Si el término es un número, buscar solo por código
+            if termino.isdigit():
+                where_clauses.append("LOWER(l.codigo) LIKE LOWER(?)")
+                params.append(f"%{termino}%")
+            else:
+                termino_like = f"%{termino}%"
+                where_clauses.append("""
+                    (LOWER(l.titulo) LIKE LOWER(?)
+                     OR LOWER(l.codigo) LIKE LOWER(?)
+                     OR LOWER(l.isbn) LIKE LOWER(?)
+                     OR LOWER(a.nombre) LIKE LOWER(?)
+                     OR LOWER(a.apellido) LIKE LOWER(?)
+                     OR LOWER(a.nombre || ' ' || a.apellido) LIKE LOWER(?))
+                """)
+                params.extend([termino_like] * 6)
+
+        if estanteria_id:
+            where_clauses.append("l.estanteria_id = ?")
+            params.append(estanteria_id)
+
+        if estado_ejemplar:
+            # Necesitamos un JOIN con ejemplares si no está ya
+            if "LEFT JOIN ejemplares" not in sql:
+                 sql += "LEFT JOIN ejemplares e ON l.id = e.libro_id\n"
+            where_clauses.append("e.estado = ?")
+            params.append(estado_ejemplar)
+
+        if where_clauses:
+            sql += " WHERE " + " AND ".join(where_clauses)
+
+        # GROUP BY (necesario para conteos)
+        sql += " GROUP BY l.id, a.id, g.id"
+
+        # ORDER BY
+        if ordenar_por == 'mas_prestado':
+            sql += " ORDER BY total_prestamos DESC"
+        elif termino:
+            sql += """
+                ORDER BY
+                    CASE WHEN LOWER(l.titulo) = LOWER(?) THEN 1
+                         WHEN LOWER(l.codigo) = LOWER(?) THEN 2
+                         WHEN LOWER(a.nombre || ' ' || a.apellido) = LOWER(?) THEN 3
+                         ELSE 4 END,
+                    l.titulo
+            """
+            params.extend([termino] * 3)
+        else:
+            sql += " ORDER BY l.titulo"
+
+        # LIMIT
+        if limite:
+            sql += " LIMIT ?"
+            params.append(limite)
+
+        cursor = self.conn.cursor()
+        rows = cursor.execute(sql, tuple(params)).fetchall()
+
+        if not rows:
+            return []
+
+        # --- Optimización N+1 ---
+        # 1. Obtener todos los IDs de libros de la consulta principal
+        libro_ids = [row['id'] for row in rows]
+
+        # 2. Realizar UNA consulta para obtener TODOS los ejemplares necesarios
+        placeholders = ','.join('?' for _ in libro_ids)
+        ejemplares_rows = cursor.execute(f"SELECT * FROM ejemplares WHERE libro_id IN ({placeholders})", libro_ids).fetchall()
+
+        # 3. Agrupar ejemplares por libro_id para acceso rápido
+        ejemplares_map = {}
+        for ej_row in ejemplares_rows:
+            ej_obj = Ejemplar(
+                id=ej_row['id'], libro_id=ej_row['libro_id'], codigo_ejemplar=ej_row['codigo_ejemplar'],
+                estado=ej_row['estado'], observaciones=ej_row['observaciones'],
+                fecha_adquisicion=ej_row['fecha_adquisicion'], ubicacion_fisica=ej_row['ubicacion_fisica']
+            )
+            if ej_row['libro_id'] not in ejemplares_map:
+                ejemplares_map[ej_row['libro_id']] = []
+            ejemplares_map[ej_row['libro_id']].append(ej_obj)
+
+        # 4. Hidratar resultados pasando el mapa de ejemplares
+        libros = [self._hidratar_libro(row, ejemplares_map=ejemplares_map) for row in rows]
+
+        # Filtrado post-consulta para 'mas_prestado' si no hay préstamos
+        if ordenar_por == 'mas_prestado':
+            libros = [libro for libro in libros if libro.historial_prestamos > 0]
+
+        return libros
+
     def execute_transaction(self, func):
         """Ejecuta una función dentro de una transacción y devuelve el resultado."""
         try:
@@ -101,58 +237,6 @@ class DBManager:
         )''')
         self.conn.commit()
 
-    def buscar_libros_inteligente(self, termino: str) -> List[Libro]:
-        """
-        Búsqueda inteligente que busca en múltiples campos simultáneamente.
-        - Insensible a mayúsculas/minúsculas
-        - Busca palabras parciales
-        - Busca en título, autor completo, código, ISBN
-        """
-        if not termino or not termino.strip():
-            return []
-        
-        cursor = self.conn.cursor()
-        # Búsqueda unificada en todos los campos relevantes
-        cursor.execute("""
-            SELECT DISTINCT l.*, 
-                   a.nombre as autor_nombre, a.apellido as autor_apellido,
-                   g.nombre as genero_nombre
-            FROM libros l
-            LEFT JOIN autores a ON l.autor_id = a.id
-            LEFT JOIN generos g ON l.genero_id = g.id
-            WHERE LOWER(l.titulo) LIKE LOWER(?)
-               OR LOWER(l.codigo) LIKE LOWER(?)
-               OR LOWER(l.isbn) LIKE LOWER(?)
-               OR LOWER(a.nombre) LIKE LOWER(?)
-               OR LOWER(a.apellido) LIKE LOWER(?)
-               OR LOWER(a.nombre || ' ' || a.apellido) LIKE LOWER(?)
-               OR LOWER(l.editorial) LIKE LOWER(?)
-            ORDER BY 
-                -- Priorizar coincidencias exactas
-                CASE WHEN LOWER(l.titulo) = LOWER(?) THEN 1
-                     WHEN LOWER(l.codigo) = LOWER(?) THEN 2
-                     WHEN LOWER(a.nombre || ' ' || a.apellido) = LOWER(?) THEN 3
-                     ELSE 4 END,
-                l.titulo
-        """, (f"%{termino}%", f"%{termino}%", f"%{termino}%", f"%{termino}%", 
-              f"%{termino}%", f"%{termino}%", f"%{termino}%",
-              termino, termino, termino))
-        return [self._hidratar_libro(row) for row in cursor.fetchall()]
-
-    def insertar_libro(self, libro: Libro) -> int:
-        def _insert(cursor):
-            cursor.execute("SELECT COUNT(*) FROM libros WHERE estanteria_id = ?", (libro.estanteria_id,))
-            count = cursor.fetchone()[0]
-            cursor.execute("SELECT capacidad FROM estanterias WHERE id = ?", (libro.estanteria_id,))
-            capacidad = cursor.fetchone()[0]
-            if count >= capacidad:
-                raise EstanteriaLlenaError(f"Estantería {libro.estanteria_id} llena.")
-            cursor.execute('''INSERT INTO libros (codigo, titulo, autor, anio, cantidad_total, cantidad_prestados, historial_prestamos, estanteria_id)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
-                          (libro.codigo, libro.titulo, libro.autor, libro.anio, libro.cantidad_total, libro.cantidad_prestados, libro.historial_prestamos, libro.estanteria_id))
-            return cursor.lastrowid
-        return self.execute_transaction(_insert)
-
     def insertar_estanteria(self, nombre: str, capacidad: int) -> int:
         """Inserta una nueva estantería en la base de datos."""
         def _insert(cursor):
@@ -170,6 +254,41 @@ class DBManager:
             if cursor.rowcount == 0:
                 raise ValueError(f"No se encontró estantería con id {id}")
         self.execute_transaction(_delete)
+
+    def modificar_estanteria(self, id: int, nombre: str, capacidad: int):
+        """Modifica una estantería existente."""
+        def _update(cursor):
+            # Verificar que la estantería existe
+            cursor.execute("SELECT * FROM estanterias WHERE id = ?", (id,))
+            if not cursor.fetchone():
+                raise ValueError(f"No se encontró estantería con id {id}")
+            
+            # Verificar que la nueva capacidad no sea menor a los ejemplares actuales
+            cursor.execute("""
+                SELECT COUNT(e.id) 
+                FROM ejemplares e 
+                JOIN libros l ON e.libro_id = l.id 
+                WHERE l.estanteria_id = ?
+            """, (id,))
+            ejemplares_actuales = cursor.fetchone()[0]
+            
+            if capacidad < ejemplares_actuales:
+                raise ValueError(
+                    f"La capacidad no puede ser menor a {ejemplares_actuales} "
+                    f"(ejemplares actualmente en la estantería)"
+                )
+            
+            # Actualizar estantería
+            cursor.execute("""
+                UPDATE estanterias 
+                SET nombre = ?, capacidad = ? 
+                WHERE id = ?
+            """, (nombre, capacidad, id))
+            
+            if cursor.rowcount == 0:
+                raise ValueError(f"No se pudo actualizar la estantería con id {id}")
+        
+        self.execute_transaction(_update)
 
     def get_libro_por_codigo(self, codigo: str) -> Optional[Libro]:
         cursor = self.conn.cursor()
@@ -196,59 +315,17 @@ class DBManager:
         return cursor.fetchone()[0]
 
     def get_libros_por_estanteria(self, estanteria_id: int) -> List[Libro]:
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT * FROM libros WHERE estanteria_id = ?", (estanteria_id,))
-        return [self._hidratar_libro(row) for row in cursor.fetchall()]
+        return self.buscar_libros(estanteria_id=estanteria_id)
 
     def get_libros_disponibles(self) -> List[Libro]:
-        cursor = self.conn.cursor()
-        cursor.execute("""
-            SELECT DISTINCT l.*, 
-                   a.nombre as autor_nombre, a.apellido as autor_apellido,
-                   g.nombre as genero_nombre
-            FROM libros l
-            JOIN ejemplares e ON l.id = e.libro_id
-            LEFT JOIN autores a ON l.autor_id = a.id
-            LEFT JOIN generos g ON l.genero_id = g.id
-            WHERE e.estado = 'disponible'
-            GROUP BY l.id, a.id, g.id
-        """)
-        return [self._hidratar_libro(row) for row in cursor.fetchall()]
+        return self.buscar_libros(estado_ejemplar='disponible')
 
     def get_libros_prestados(self) -> List[Libro]:
-        cursor = self.conn.cursor()
-        cursor.execute("""
-            SELECT DISTINCT l.*, 
-                   a.nombre as autor_nombre, a.apellido as autor_apellido,
-                   g.nombre as genero_nombre
-            FROM libros l
-            JOIN ejemplares e ON l.id = e.libro_id
-            LEFT JOIN autores a ON l.autor_id = a.id
-            LEFT JOIN generos g ON l.genero_id = g.id
-            WHERE e.estado = 'prestado'
-            GROUP BY l.id, a.id, g.id
-        """)
-        return [self._hidratar_libro(row) for row in cursor.fetchall()]
+        return self.buscar_libros(estado_ejemplar='prestado')
 
     def get_libro_mas_prestado(self) -> Optional[Libro]:
-        cursor = self.conn.cursor()
-        cursor.execute("""
-            SELECT l.*, COUNT(p.id) as total_prestamos,
-                   a.nombre as autor_nombre, a.apellido as autor_apellido,
-                   g.nombre as genero_nombre
-            FROM libros l
-            LEFT JOIN ejemplares e ON l.id = e.libro_id
-            LEFT JOIN prestamos p ON e.id = p.ejemplar_id
-            LEFT JOIN autores a ON l.autor_id = a.id
-            LEFT JOIN generos g ON l.genero_id = g.id
-            GROUP BY l.id, a.id, g.id
-            ORDER BY total_prestamos DESC
-            LIMIT 1
-        """)
-        row = cursor.fetchone()
-        if row and row['total_prestamos'] > 0:
-            return self._hidratar_libro(row)
-        return None
+        libros = self.buscar_libros(ordenar_por='mas_prestado', limite=1)
+        return libros[0] if libros else None
 
     def get_todas_las_estanterias(self) -> List[Estanteria]:
         cursor = self.conn.cursor()
@@ -259,30 +336,15 @@ class DBManager:
         self.conn.close()
 
     # ============ FUNCIÓN DE HIDRATACIÓN ============
-    def _hidratar_libro(self, row) -> 'Libro':
-        """Convierte una fila de base de datos en un objeto Libro completo.
-        
-        Hidrata el libro con todas sus relaciones:
-        - Autor (objeto Autor completo)
-        - Género (objeto Genero completo)
-        - Ejemplares (lista de objetos Ejemplar)
-        - Historial de préstamos (si está disponible en la consulta)
-        
-        Args:
-            row: Fila de sqlite3 (sqlite3.Row o dict) con datos del libro
-            
-        Returns:
-            Libro: Objeto Libro completamente hidratado con todas sus relaciones
+    def _hidratar_libro(self, row, ejemplares_map: Optional[dict] = None) -> 'Libro':
+        """
+        Convierte una fila de base de datos en un objeto Libro completo.
+        Acepta un mapa de ejemplares pre-cargados para evitar consultas N+1.
         """
         from logic.models import Libro
         
-        # Convertir sqlite3.Row a dict si es necesario
-        if hasattr(row, 'keys'):
-            row_dict = dict(row)
-        else:
-            row_dict = row
+        row_dict = dict(row)
         
-        # Crear libro con todos sus campos
         libro = Libro(
             id=row_dict['id'],
             codigo=row_dict['codigo'],
@@ -298,9 +360,7 @@ class DBManager:
             fecha_adquisicion=row_dict.get('fecha_adquisicion')
         )
         
-        # Poblar datos relacionados
         try:
-            # Poblar autor - usar datos de la consulta si están disponibles
             if 'autor_nombre' in row_dict and 'autor_apellido' in row_dict:
                 from logic.models import Autor
                 libro.autor = Autor(
@@ -311,7 +371,6 @@ class DBManager:
             elif libro.autor_id:
                 libro.autor = self.get_autor(libro.autor_id)
             
-            # Poblar género - usar datos de la consulta si están disponibles
             if 'genero_nombre' in row_dict and row_dict['genero_nombre']:
                 from logic.models import Genero
                 libro.genero = Genero(
@@ -321,11 +380,14 @@ class DBManager:
             elif libro.genero_id:
                 libro.genero = self.get_genero(libro.genero_id)
             
-            # Poblar ejemplares - siempre necesario para calcular disponibles/prestados
-            if libro.id:
+            # --- Lógica de hidratación de ejemplares optimizada ---
+            if ejemplares_map is not None:
+                # Usar el mapa pre-cargado
+                libro.ejemplares = ejemplares_map.get(libro.id, [])
+            elif libro.id:
+                # Caer de vuelta a la consulta individual si no hay mapa
                 libro.ejemplares = self.get_ejemplares_por_libro(libro.id)
             
-            # Poblar historial de préstamos si está en la consulta
             if 'total_prestamos' in row_dict:
                 libro.historial_prestamos = row_dict['total_prestamos']
                 
@@ -352,6 +414,39 @@ class DBManager:
             return Usuario(row['id'], row['nombre'], row['email'], row['telefono'], 
                          row['direccion'], row['fecha_registro'], row['activo'])
         return None
+
+    def insertar_libro_con_ejemplares(self, libro_info: dict, autor_id: int, genero_id: Optional[int], cantidad_ejemplares: int) -> int:
+        """
+        Inserta un libro y sus ejemplares en una única transacción.
+        Calcula automáticamente la ubicación de cada ejemplar.
+        """
+        def _insert(cursor):
+            # 1. Insertar el libro principal
+            cursor.execute("""
+                INSERT INTO libros (codigo, titulo, isbn, anio, editorial, autor_id, genero_id, estanteria_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                libro_info['codigo'], libro_info['titulo'], libro_info.get('isbn'),
+                libro_info['anio'], libro_info.get('editorial'), autor_id,
+                genero_id, libro_info['estanteria_id']
+            ))
+            libro_id = cursor.lastrowid
+
+            # 2. Insertar cada ejemplar, generando su ubicación
+            for i in range(cantidad_ejemplares):
+                codigo_ejemplar = f"{libro_info['codigo']}-{i+1:03d}"
+
+                # Usar el método centralizado para la ubicación
+                ubicacion_auto = self._generar_ubicacion_automatica(libro_id)
+
+                cursor.execute("""
+                    INSERT INTO ejemplares (libro_id, codigo_ejemplar, ubicacion_fisica, estado)
+                    VALUES (?, ?, ?, ?)
+                """, (libro_id, codigo_ejemplar, ubicacion_auto, 'disponible'))
+
+            return libro_id
+
+        return self.execute_transaction(_insert)
 
     def get_todos_usuarios(self) -> List[Usuario]:
         cursor = self.conn.cursor()
@@ -488,6 +583,19 @@ class DBManager:
                           row['ubicacion_fisica'])
         return None
 
+    def get_ejemplar_por_codigo(self, codigo_ejemplar: str) -> Optional[Ejemplar]:
+        """Busca un ejemplar específico por su código único."""
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT * FROM ejemplares WHERE codigo_ejemplar = ?", (codigo_ejemplar,))
+        row = cursor.fetchone()
+        if row:
+            return Ejemplar(
+                id=row['id'], libro_id=row['libro_id'], codigo_ejemplar=row['codigo_ejemplar'],
+                estado=row['estado'], observaciones=row['observaciones'],
+                fecha_adquisicion=row['fecha_adquisicion'], ubicacion_fisica=row['ubicacion_fisica']
+            )
+        return None
+
     def get_ejemplares_por_libro(self, libro_id: int) -> List[Ejemplar]:
         cursor = self.conn.cursor()
         cursor.execute("SELECT * FROM ejemplares WHERE libro_id = ? ORDER BY codigo_ejemplar", 
@@ -495,6 +603,37 @@ class DBManager:
         return [Ejemplar(row['id'], row['libro_id'], row['codigo_ejemplar'], 
                         row['estado'], row['observaciones'], row['fecha_adquisicion'], 
                         row['ubicacion_fisica']) for row in cursor.fetchall()]
+
+    def buscar_ejemplares_disponibles(self, termino: str) -> List[Tuple[Ejemplar, str]]:
+        """
+        Busca ejemplares disponibles por código de ejemplar o título de libro.
+        Devuelve una lista de tuplas (Ejemplar, titulo_libro).
+        """
+        cursor = self.conn.cursor()
+        termino_like = f"%{termino}%"
+
+        cursor.execute("""
+            SELECT e.*, l.titulo as libro_titulo
+            FROM ejemplares e
+            JOIN libros l ON e.libro_id = l.id
+            WHERE e.estado = 'disponible' AND (
+                LOWER(e.codigo_ejemplar) LIKE LOWER(?) OR
+                LOWER(l.titulo) LIKE LOWER(?)
+            )
+            ORDER BY l.titulo, e.codigo_ejemplar
+            LIMIT 10
+        """, (termino_like, termino_like))
+
+        resultados = []
+        for row in cursor.fetchall():
+            ejemplar = Ejemplar(
+                id=row['id'], libro_id=row['libro_id'], codigo_ejemplar=row['codigo_ejemplar'],
+                estado=row['estado'], observaciones=row['observaciones'],
+                fecha_adquisicion=row['fecha_adquisicion'], ubicacion_fisica=row['ubicacion_fisica']
+            )
+            resultados.append((ejemplar, row['libro_titulo']))
+
+        return resultados
 
     def get_ejemplares_disponibles(self) -> List[Ejemplar]:
         cursor = self.conn.cursor()
@@ -621,6 +760,31 @@ class DBManager:
                       (usuario_id,))
         return [self._crear_prestamo_from_row(row) for row in cursor.fetchall()]
 
+    def get_todos_prestamos(self, limite: Optional[int] = None, solo_devueltos: bool = False) -> List[Prestamo]:
+        """
+        Obtiene el historial completo de préstamos.
+        
+        Args:
+            limite: Número máximo de resultados (None = todos)
+            solo_devueltos: Si True, solo muestra préstamos devueltos
+        
+        Returns:
+            Lista de préstamos ordenados por fecha (más recientes primero)
+        """
+        cursor = self.conn.cursor()
+        
+        sql = "SELECT * FROM prestamos"
+        
+        if solo_devueltos:
+            sql += " WHERE estado = 'devuelto'"
+        
+        sql += " ORDER BY fecha_prestamo DESC"
+        
+        if limite:
+            sql += f" LIMIT {limite}"
+        
+        cursor.execute(sql)
+        return [self._crear_prestamo_from_row(row) for row in cursor.fetchall()]
 
     def get_libro_por_id(self, libro_id: int) -> Optional[Libro]:
         """Obtiene un libro por su ID con datos relacionados."""
@@ -641,17 +805,7 @@ class DBManager:
 
     def get_todos_los_libros(self) -> List[Libro]:
         """Obtiene todos los libros de la base de datos con datos relacionados."""
-        cursor = self.conn.cursor()
-        cursor.execute("""
-            SELECT DISTINCT l.*, 
-                   a.nombre as autor_nombre, a.apellido as autor_apellido,
-                   g.nombre as genero_nombre
-            FROM libros l
-            LEFT JOIN autores a ON l.autor_id = a.id
-            LEFT JOIN generos g ON l.genero_id = g.id
-            ORDER BY l.titulo
-        """)
-        return [self._hidratar_libro(row) for row in cursor.fetchall()]
+        return self.buscar_libros()
 
     def get_resumen_dashboard(self) -> dict:
         """Obtiene un resumen de estadísticas para el dashboard."""
